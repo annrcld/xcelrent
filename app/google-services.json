@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "404376683644",
+    "project_id": "xcelrent",
+    "storage_bucket": "xcelrent.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:404376683644:android:b848513f15da65b3cc35f9",
+        "android_client_info": {
+          "package_name": "com.example.xcelrent"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSxif7-099i0W4od3yziG8_dgzIgXqaZY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
