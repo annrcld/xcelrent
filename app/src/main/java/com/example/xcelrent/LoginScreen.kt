@@ -2,9 +2,9 @@ package com.example.xcelrent
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,115 +12,127 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.xcelrent.ui.theme.InterFamily
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun LoginScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    val context = LocalContext.current
+    var isLoading by remember { mutableStateOf(false) }
+
     val auth = FirebaseAuth.getInstance()
+    val context = LocalContext.current
+    val sportRed = Color(0xFFE53935)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212))
-            .padding(24.dp),
-        horizontalAlignment = Alignment.Start
+            .background(Color.White)
+            .padding(horizontal = 28.dp, vertical = 60.dp)
     ) {
-        Spacer(modifier = Modifier.height(60.dp))
-
-        Text(
-            text = "WELCOME TO XCELRENT",
-            color = Color.White,
-            fontSize = 32.sp,
-            fontWeight = FontWeight.ExtraBold
-        )
-
-        Text(
-            text = "Enter your email and password to log in.",
-            color = Color.Gray,
-            modifier = Modifier.padding(top = 8.dp)
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Email TextField
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Your email address", color = Color.Gray) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = Color(0xFF1E1E1E),
-                focusedContainerColor = Color(0xFF1E1E1E),
-                focusedBorderColor = Color(0xFFB71C1C),
-                unfocusedBorderColor = Color.Transparent
-            ),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Password TextField
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password", color = Color.Gray) },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = Color(0xFF1E1E1E),
-                focusedContainerColor = Color(0xFF1E1E1E),
-                focusedBorderColor = Color(0xFFB71C1C),
+        // 1. Brand Logo
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "Xcelrent",
+                style = MaterialTheme.typography.titleLarge,
+                fontFamily = InterFamily,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
             )
+            Text(
+                text = ".",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = sportRed
+            )
+        }
+
+        Spacer(modifier = Modifier.height(100.dp))
+
+        // 2. Heading
+        Text(
+            text = "Welcome Back.",
+            style = MaterialTheme.typography.displayMedium,
+            fontFamily = InterFamily,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color(0xFF212121)
+        )
+        Text(
+            text = "Log in to continue.",
+            style = MaterialTheme.typography.titleLarge,
+            fontFamily = InterFamily,
+            color = Color.Gray
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(40.dp))
 
-        // Continue Button
+        // 3. Input Fields (Reusing your professional AccountTextField style)
+        AccountTextField(
+            value = email,
+            onValue = { email = it },
+            label = "Email Address"
+        )
+
+        AccountTextField(
+            value = password,
+            onValue = { password = it },
+            label = "Password",
+            isPassword = true
+        )
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        // 4. Login Button
         Button(
             onClick = {
-                if (email.isNotBlank() && password.isNotBlank()) {
-                    auth.signInWithEmailAndPassword(email, password)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                navController.navigate("home") {
-                                    popUpTo("login") { inclusive = true }
-                                }
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    "Login failed: ${task.exception?.message}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                if (email.isNotEmpty() && password.isNotEmpty()) {
+                    isLoading = true
+                    auth.signInWithEmailAndPassword(email.trim(), password)
+                        .addOnSuccessListener {
+                            isLoading = false
+                            navController.navigate("home") {
+                                popUpTo("login") { inclusive = true }
                             }
                         }
-                } else {
-                    Toast.makeText(context, "Please fill in all fields.", Toast.LENGTH_SHORT).show()
+                        .addOnFailureListener { e ->
+                            isLoading = false
+                            Toast.makeText(context, "Login Failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                        }
                 }
             },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB71C1C)),
-            shape = RoundedCornerShape(8.dp)
+            modifier = Modifier.fillMaxWidth().height(64.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = sportRed),
+            shape = RoundedCornerShape(16.dp),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp),
+            enabled = !isLoading
         ) {
-            Text("Continue", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            if (isLoading) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            } else {
+                Text(
+                    text = "Continue",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontFamily = InterFamily,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Guest Mode Button
-        TextButton(
-            onClick = { navController.navigate("home") }, // Moves to Car List
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        ) {
-            Text("Continue as guest", color = Color.White, style = MaterialTheme.typography.bodyLarge)
-        }
+        // 5. Footer
+        Text(
+            text = "Don't have an account? Sign Up",
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .clickable { navController.navigate("create_account") },
+            style = MaterialTheme.typography.bodyLarge,
+            fontFamily = InterFamily,
+            color = Color.DarkGray
+        )
     }
 }

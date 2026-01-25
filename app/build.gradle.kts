@@ -43,6 +43,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.compose.material:material-icons-extended")
     // Import the BoM (Bill of Materials) to manage versions automatically
     implementation(platform("com.google.firebase:firebase-bom:33.8.0"))
 
