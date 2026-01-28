@@ -47,6 +47,8 @@ class MainActivity : ComponentActivity() {
                     composable("login") { LoginScreen(navController) }
                     composable("create_account") { CreateAccountScreen(navController) }
                     composable("home") { HomeScreen(navController) }
+                    composable("profile") { ProfileScreen(navController) }
+                    composable("favorites") { FavoritesScreen(navController) }
                     composable("details/{carId}") { backStackEntry ->
                         val carId = backStackEntry.arguments?.getString("carId") ?: ""
                         CarDetailsScreen(carId, navController)
@@ -121,3 +123,4 @@ fun GreetingPreview() {
         Greeting("Android")
     }
 }
+

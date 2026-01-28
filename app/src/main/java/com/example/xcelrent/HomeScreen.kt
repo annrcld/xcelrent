@@ -11,8 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +22,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -30,6 +30,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.example.xcelrent.ui.theme.InterFamily
+import java.text.SimpleDateFormat
+import java.util.*
 
 // --- Screen and Data Definitions ---
 
@@ -80,26 +82,15 @@ fun HomeScreen(navController: NavController) {
 
 @Composable
 fun BottomNavigationBar(navController: NavController) {
-    val screens = listOf(
-        BottomBarScreen.Home,
-        BottomBarScreen.Favorites,
-        BottomBarScreen.Profile
-    )
+    val screens = listOf(BottomBarScreen.Home, BottomBarScreen.Favorites, BottomBarScreen.Profile)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 8.dp
-    ) {
+    NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
         screens.forEach { screen ->
             NavigationBarItem(
-                label = {
-                    Text(text = screen.title, fontFamily = InterFamily, fontWeight = FontWeight.Medium)
-                },
-                icon = {
-                    Icon(imageVector = screen.icon, contentDescription = screen.title)
-                },
+                label = { Text(text = screen.title, fontFamily = InterFamily, fontWeight = FontWeight.Medium) },
+                icon = { Icon(imageVector = screen.icon, contentDescription = screen.title) },
                 selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                 onClick = {
                     navController.navigate(screen.route) {
@@ -122,66 +113,41 @@ fun BottomNavigationBar(navController: NavController) {
 @Composable
 fun HomeTopBar() {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
-            Text(
-                text = "Your Location",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
-                fontFamily = InterFamily
-            )
+            Text("Your Location", style = MaterialTheme.typography.bodySmall, color = Color.Gray, fontFamily = InterFamily)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Filled.LocationOn,
-                    contentDescription = null,
-                    tint = SportRed,
-                    modifier = Modifier.size(20.dp)
-                )
+                Icon(Icons.Filled.LocationOn, null, tint = SportRed, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "Manila, Philippines",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = InterFamily
-                )
-                Icon(
-                    imageVector = Icons.Filled.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = Color.Gray
-                )
+                Text("Manila, Philippines", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
+                Icon(Icons.Filled.KeyboardArrowDown, null, tint = Color.Gray)
             }
         }
         BadgedBox(badge = { Badge(containerColor = SportRed) { Text("3") } }) {
-            Icon(
-                imageVector = Icons.Filled.Notifications,
-                contentDescription = "Notifications",
-                tint = Color.Black,
-                modifier = Modifier.size(28.dp)
-            )
+            Icon(Icons.Filled.Notifications, "Notifications", tint = Color.Black, modifier = Modifier.size(28.dp))
         }
     }
 }
 
 @Composable
 fun SearchCarCard() {
+    var pickupDateTime by remember { mutableStateOf(Calendar.getInstance()) }
+    var returnDateTime by remember { mutableStateOf(Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 3) }) }
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                DateTimeSelector(label = "Pickup", date = "Mon, 29 Jan", time = "10:00 AM", modifier = Modifier.weight(1f))
+                DateTimeSelector("Pickup", pickupDateTime, Modifier.weight(1f)) { pickupDateTime = it }
                 Spacer(modifier = Modifier.width(16.dp))
-                DateTimeSelector(label = "Return", date = "Thu, 01 Feb", time = "10:00 AM", modifier = Modifier.weight(1f))
+                DateTimeSelector("Return", returnDateTime, Modifier.weight(1f)) { returnDateTime = it }
             }
             Spacer(modifier = Modifier.height(24.dp))
             Button(
@@ -190,29 +156,38 @@ fun SearchCarCard() {
                 colors = ButtonDefaults.buttonColors(containerColor = SportRed),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Icon(Icons.Filled.Search, contentDescription = null, tint = Color.White)
+                Icon(Icons.Filled.Search, null, tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Search for a Car",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontFamily = InterFamily,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Search for a Car", style = MaterialTheme.typography.titleMedium, fontFamily = InterFamily, fontWeight = FontWeight.Bold)
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DateTimeSelector(label: String, date: String, time: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = Color.Gray,
-            fontFamily = InterFamily,
-            fontWeight = FontWeight.SemiBold
-        )
+fun DateTimeSelector(
+    label: String,
+    dateTime: Calendar,
+    modifier: Modifier = Modifier,
+    onDateTimeSelected: (Calendar) -> Unit
+) {
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    val tempDatePickerState = rememberDatePickerState(initialSelectedDateMillis = dateTime.timeInMillis)
+    val tempTimePickerState = rememberTimePickerState(
+        initialHour = dateTime.get(Calendar.HOUR_OF_DAY),
+        initialMinute = dateTime.get(Calendar.MINUTE),
+        is24Hour = false
+    )
+
+    val dateFormatter = SimpleDateFormat("EEE, dd MMM", Locale.getDefault())
+    val timeFormatter = SimpleDateFormat("hh:mm a", Locale.getDefault())
+
+    // The clickable UI element
+    Column(modifier = modifier.clickable { showDatePicker = true }) {
+        Text(label, style = MaterialTheme.typography.labelLarge, color = Color.Gray, fontFamily = InterFamily, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
         Box(
             modifier = Modifier
@@ -222,26 +197,117 @@ fun DateTimeSelector(label: String, date: String, time: String, modifier: Modifi
                 .padding(12.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Filled.CalendarToday,
-                    contentDescription = null,
-                    tint = SportRed,
-                    modifier = Modifier.size(20.dp)
-                )
+                Icon(Icons.Filled.CalendarToday, null, tint = SportRed, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
-                    Text(
-                        text = date,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = InterFamily
+                    Text(dateFormatter.format(dateTime.time), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
+                    Text(timeFormatter.format(dateTime.time), style = MaterialTheme.typography.bodySmall, color = Color.Gray, fontFamily = InterFamily)
+                }
+            }
+        }
+    }
+
+    // --- Date Picker Dialog ---
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = { showDatePicker = false; showTimePicker = true }) {
+                    Text("OK", fontWeight = FontWeight.Bold, color = SportRed, fontFamily = InterFamily)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel", color = Color.Gray, fontFamily = InterFamily)
+                }
+            }
+        ) {
+            DatePicker(
+                state = tempDatePickerState,
+                title = null, headline = null, showModeToggle = false,
+                colors = DatePickerDefaults.colors(
+                    containerColor = Color.White,
+                    selectedDayContainerColor = SportRed,
+                    todayDateBorderColor = SportRed,
+                    todayContentColor = SportRed,
+                    dayContentColor = Color.Black,
+                    weekdayContentColor = Color.DarkGray,
+                    subheadContentColor = Color.DarkGray,
+                    yearContentColor = Color.Black,
+                    currentYearContentColor = SportRed,
+                    selectedYearContentColor = Color.White,
+                    selectedYearContainerColor = SportRed
+                )
+            )
+        }
+    }
+
+    // --- Time Picker Dialog ---
+    if (showTimePicker) {
+        MinimalTimePickerDialog(
+            onDismiss = { showTimePicker = false },
+            onConfirm = {
+                showTimePicker = false
+                val calendar = Calendar.getInstance()
+                tempDatePickerState.selectedDateMillis?.let { calendar.timeInMillis = it }
+                calendar.set(Calendar.HOUR_OF_DAY, tempTimePickerState.hour)
+                calendar.set(Calendar.MINUTE, tempTimePickerState.minute)
+                onDateTimeSelected(calendar)
+            },
+            state = tempTimePickerState
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MinimalTimePickerDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    state: TimePickerState
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(28.dp)) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "Select Time",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 20.dp),
+                    fontFamily = InterFamily
+                )
+                TimePicker(
+                    state = state,
+                    colors = TimePickerDefaults.colors(
+                        clockDialColor = Color(0xFFF0F0F0),
+                        clockDialSelectedContentColor = Color.White,
+                        clockDialUnselectedContentColor = Color.Black,
+                        selectorColor = SportRed,
+                        timeSelectorSelectedContainerColor = SportRed,
+                        timeSelectorUnselectedContainerColor = Color(0xFFF0F0F0), // Subtle background for unselected
+                        timeSelectorSelectedContentColor = Color.White,
+                        timeSelectorUnselectedContentColor = Color.Black,
+                        periodSelectorSelectedContainerColor = SportRed,
+                        periodSelectorUnselectedContainerColor = Color(0xFFF0F0F0), // Subtle background for unselected
+                        periodSelectorSelectedContentColor = Color.White,
+                        periodSelectorUnselectedContentColor = Color.Black
                     )
-                    Text(
-                        text = time,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray,
-                        fontFamily = InterFamily
-                    )
+                )
+                Spacer(Modifier.height(24.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel", color = Color.Gray, fontFamily = InterFamily)
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    TextButton(onClick = onConfirm) {
+                        Text("OK", fontWeight = FontWeight.Bold, color = SportRed, fontFamily = InterFamily)
+                    }
                 }
             }
         }
@@ -252,35 +318,19 @@ fun DateTimeSelector(label: String, date: String, time: String, modifier: Modifi
 fun RecommendationSection(navController: NavController) {
     Column {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Recommendation",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                fontFamily = InterFamily
-            )
+            Text("Recommendation", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
             TextButton(onClick = { /* TODO: Navigate to list */ }) {
-                Text(
-                    text = "See all",
-                    color = SportRed,
-                    fontFamily = InterFamily
-                )
+                Text("See all", color = SportRed, fontFamily = InterFamily)
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        LazyRow(contentPadding = PaddingValues(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             items(carList) { car ->
-                RecommendationCarCard(car = car) {
-                    navController.navigate("details/${car.id}")
-                }
+                RecommendationCarCard(car = car) { navController.navigate("details/${car.id}") }
             }
         }
     }
@@ -289,20 +339,14 @@ fun RecommendationSection(navController: NavController) {
 @Composable
 fun RecommendationCarCard(car: Car, onClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .width(220.dp)
-            .clickable(onClick = onClick),
+        modifier = Modifier.width(220.dp).clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFF5F5F5)),
+                modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFFF5F5F5)),
                 contentAlignment = Alignment.Center
             ) {
                 AsyncImage(
@@ -315,31 +359,11 @@ fun RecommendationCarCard(car: Car, onClick: () -> Unit) {
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = car.model,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                fontFamily = InterFamily
-            )
-            Text(
-                text = car.specs,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
-                fontFamily = InterFamily
-            )
+            Text(car.model, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
+            Text(car.specs, style = MaterialTheme.typography.bodyMedium, color = Color.Gray, fontFamily = InterFamily)
             Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "$${car.price}/day",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = SportRed,
-                    fontFamily = InterFamily
-                )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("$${car.price}/day", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = SportRed, fontFamily = InterFamily)
             }
         }
     }
