@@ -45,10 +45,10 @@ sealed class BottomBarScreen(
 }
 
 val carList = listOf(
-    Car("car_001", "Toyota Camry", 55.0, "4-door, A/C", "https://example.com/camry.png", "Live"),
-    Car("car_002", "Honda CR-V", 70.0, "5-door, SUV", "https://example.com/crv.png", "Live"),
-    Car("car_003", "BMW 3 Series", 95.0, "Luxury, Sport", "https://example.com/bmw.png", "Live"),
-    Car("car_004", "Ford Mustang", 120.0, "2-door, Coupe", "https://example.com/mustang.png", "Live")
+    Car("car_001", "Toyota Camry", 55.0, "4-door, A/C", "https://images.hgmsites.net/med/2023-toyota-camry-se-auto-natl-angular-front-exterior-view_100857360_m.jpg", "Live"),
+    Car("car_002", "Honda CR-V", 70.0, "5-door, SUV", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTFb_P9pn8AGyKRVw66bk28SMPjQ3EHIzGePQ&s", "Live"),
+    Car("car_003", "BMW 3 Series", 95.0, "Luxury, Sport", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoE5_w-VuOKWtlS9i1xM_NUPbZV__Usy8rLg&s", "Live"),
+    Car("car_004", "Ford Mustang", 120.0, "2-door, Coupe", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhCfUi1d8kENke9r9oRkrIvTD_0jObZkYBcA&s", "Live")
 )
 
 val SportRed = Color(0xFFE53935)
@@ -103,6 +103,8 @@ fun HomeScreen(navController: NavController) {
                 }
             }
 
+            Spacer(modifier = Modifier.height(32.dp))
+            FaqSection()
             Spacer(modifier = Modifier.height(100.dp))
         }
     }
@@ -439,6 +441,78 @@ fun PromoBanner() {
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExpandableCard(question: String, answer: String) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+        onClick = { expanded = !expanded }
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = question,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = InterFamily,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                    contentDescription = if (expanded) "Collapse" else "Expand"
+                )
+            }
+            AnimatedVisibility(visible = expanded) {
+                Column {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = answer,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.DarkGray,
+                        fontFamily = InterFamily
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FaqSection() {
+    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+        Text(
+            "Frequently Asked Questions",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            fontFamily = InterFamily
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        ExpandableCard(
+            question = "How do I extend my rental?",
+            answer = "You can extend your rental through the app. Go to your current rental details and you will find an option to extend it."
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        ExpandableCard(
+            question = "What happens if I'm late for the return?",
+            answer = "A late fee will be applied for every hour you are late. Please contact support if you anticipate being late."
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        ExpandableCard(
+            question = "Is insurance included in the daily price?",
+            answer = "Yes, basic insurance is included. You can purchase additional coverage at the time of booking."
+        )
+    }
+}
+
+
 @Composable
 fun CarListSection(navController: NavController, cars: List<Car>, title: String) {
     Column(
@@ -469,7 +543,7 @@ fun CarListItem(car: Car, onClick: () -> Unit) {
             AsyncImage(
                 model = car.imageUrl,
                 contentDescription = car.model,
-                contentScale = ContentScale.Crop,
+                contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .size(110.dp)
                     .clip(RoundedCornerShape(16.dp)),
