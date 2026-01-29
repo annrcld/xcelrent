@@ -1,10 +1,9 @@
 package com.example.xcelrent
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -56,8 +55,11 @@ val SportRed = Color(0xFFE53935)
 
 // --- Main Screen Composable ---
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun HomeScreen(navController: NavController) {
+    var searchResults by remember { mutableStateOf<List<Car>?>(null) }
+
     Scaffold(
         topBar = { HomeTopBar() },
         bottomBar = { BottomNavigationBar(navController) },
@@ -70,9 +72,37 @@ fun HomeScreen(navController: NavController) {
                 .verticalScroll(rememberScrollState())
                 .background(Color.White)
         ) {
-            SearchCarCard()
+            SearchCarCard {
+                searchResults = carList.shuffled() // Simulate new results
+            }
             Spacer(modifier = Modifier.height(32.dp))
-            RecommendationSection(navController)
+
+            WhyChooseUsSection()
+            Spacer(modifier = Modifier.height(32.dp))
+            PromoBanner()
+            Spacer(modifier = Modifier.height(32.dp))
+
+            AnimatedContent(
+                targetState = searchResults,
+                transitionSpec = {
+                    fadeIn() togetherWith fadeOut()
+                }
+            ) { results ->
+                if (results != null) {
+                    CarListSection(
+                        navController = navController,
+                        cars = results,
+                        title = "Available Cars"
+                    )
+                } else {
+                    CarListSection(
+                        navController = navController,
+                        cars = carList,
+                        title = "Top Rated"
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(100.dp))
         }
     }
@@ -133,7 +163,7 @@ fun HomeTopBar() {
 }
 
 @Composable
-fun SearchCarCard() {
+fun SearchCarCard(onSearchClick: () -> Unit) {
     var pickupDateTime by remember { mutableStateOf(Calendar.getInstance()) }
     var returnDateTime by remember { mutableStateOf(Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 3) }) }
 
@@ -151,7 +181,7 @@ fun SearchCarCard() {
             }
             Spacer(modifier = Modifier.height(24.dp))
             Button(
-                onClick = { /* TODO: Handle Search Click */ },
+                onClick = onSearchClick, // Trigger the search
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = SportRed),
                 shape = RoundedCornerShape(16.dp)
@@ -287,11 +317,11 @@ fun MinimalTimePickerDialog(
                         clockDialUnselectedContentColor = Color.Black,
                         selectorColor = SportRed,
                         timeSelectorSelectedContainerColor = SportRed,
-                        timeSelectorUnselectedContainerColor = Color(0xFFF0F0F0), // Subtle background for unselected
+                        timeSelectorUnselectedContainerColor = Color(0xFFF0F0F0),
                         timeSelectorSelectedContentColor = Color.White,
                         timeSelectorUnselectedContentColor = Color.Black,
                         periodSelectorSelectedContainerColor = SportRed,
-                        periodSelectorUnselectedContainerColor = Color(0xFFF0F0F0), // Subtle background for unselected
+                        periodSelectorUnselectedContainerColor = Color(0xFFF0F0F0),
                         periodSelectorSelectedContentColor = Color.White,
                         periodSelectorUnselectedContentColor = Color.Black
                     )
@@ -315,59 +345,188 @@ fun MinimalTimePickerDialog(
 }
 
 @Composable
-fun RecommendationSection(navController: NavController) {
-    Column {
+fun WhyChooseUsSection() {
+    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+        Text("Why Choose Us?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
+        Spacer(modifier = Modifier.height(16.dp))
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            InfoCard(
+                icon = Icons.Filled.AttachMoney,
+                title = "No Hidden Fees",
+                subtitle = "Prices are final.",
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            InfoCard(
+                icon = Icons.Filled.SupportAgent,
+                title = "24/7 Support",
+                subtitle = "We are always here.",
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            InfoCard(
+                icon = Icons.Filled.EventAvailable,
+                title = "Free Cancellation",
+                subtitle = "Change of plans?",
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+fun InfoCard(icon: ImageVector, title: String, subtitle: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp).fillMaxWidth(), // Reduced padding
+            horizontalAlignment = Alignment.Start, // Left-aligned content
+            verticalArrangement = Arrangement.Top // Aligned to top
+        ) {
+            Icon(imageVector = icon, contentDescription = title, tint = SportRed)
+            Spacer(modifier = Modifier.height(6.dp)) // Reduced spacer
+            Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
+            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray, fontFamily = InterFamily)
+        }
+    }
+}
+
+@Composable
+fun PromoBanner() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .height(120.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = SportRed),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Get 20% Off Your First Ride!",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    fontFamily = InterFamily
+                )
+                Text(
+                    text = "Use code: XCELFIRST",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontFamily = InterFamily
+                )
+            }
+            Icon(
+                imageVector = Icons.Filled.NewReleases,
+                contentDescription = "Discount",
+                tint = Color.White,
+                modifier = Modifier.size(48.dp)
+            )
+        }
+    }
+}
+
+
+@Composable
+fun CarListSection(navController: NavController, cars: List<Car>, title: String) {
+    Column(
+        modifier = Modifier.padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
+        cars.forEach { car ->
+            CarListItem(car = car) { navController.navigate("details/${car.id}") }
+        }
+    }
+}
+
+@Composable
+fun CarListItem(car: Car, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp, hoveredElevation = 6.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Recommendation", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
-            TextButton(onClick = { /* TODO: Navigate to list */ }) {
-                Text("See all", color = SportRed, fontFamily = InterFamily)
+            AsyncImage(
+                model = car.imageUrl,
+                contentDescription = car.model,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(110.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+                placeholder = painterResource(id = R.drawable.ic_launcher_foreground),
+                error = painterResource(id = R.drawable.ic_launcher_foreground)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = car.model,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = InterFamily
+                )
+                Text(
+                    text = car.specs,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    fontFamily = InterFamily
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Additional Details (Seats, Fuel)
+                Row {
+                    CarDetailChip(icon = Icons.Filled.AirlineSeatReclineNormal, text = "4 Seats")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    CarDetailChip(icon = Icons.Filled.LocalGasStation, text = "Petrol")
+                }
             }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        LazyRow(contentPadding = PaddingValues(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            items(carList) { car ->
-                RecommendationCarCard(car = car) { navController.navigate("details/${car.id}") }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "$${car.price}",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = SportRed,
+                    fontFamily = InterFamily
+                )
+                Text(
+                    text = "/day",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    fontFamily = InterFamily
+                )
             }
         }
     }
 }
 
 @Composable
-fun RecommendationCarCard(car: Car, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier.width(220.dp).clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Box(
-                modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFFF5F5F5)),
-                contentAlignment = Alignment.Center
-            ) {
-                AsyncImage(
-                    model = car.imageUrl,
-                    contentDescription = car.model,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                    placeholder = painterResource(id = R.drawable.ic_launcher_foreground),
-                    error = painterResource(id = R.drawable.ic_launcher_foreground)
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(car.model, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
-            Text(car.specs, style = MaterialTheme.typography.bodyMedium, color = Color.Gray, fontFamily = InterFamily)
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("$${car.price}/day", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = SportRed, fontFamily = InterFamily)
-            }
-        }
+fun CarDetailChip(icon: ImageVector, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(imageVector = icon, contentDescription = text, modifier = Modifier.size(16.dp), tint = Color.Gray)
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = text, style = MaterialTheme.typography.bodySmall, color = Color.Gray, fontFamily = InterFamily)
     }
 }
+
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
