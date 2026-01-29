@@ -40,7 +40,7 @@ sealed class BottomBarScreen(
     val icon: ImageVector
 ) {
     object Home : BottomBarScreen("home", "Home", Icons.Filled.Home)
-    object Favorites : BottomBarScreen("favorites", "Favorites", Icons.Filled.Favorite)
+    object MyTrips : BottomBarScreen("mytrips", "My Trips", Icons.Filled.Commute)
     object Profile : BottomBarScreen("profile", "Profile", Icons.Filled.Person)
 }
 
@@ -114,7 +114,7 @@ fun HomeScreen(navController: NavController) {
 
 @Composable
 fun BottomNavigationBar(navController: NavController) {
-    val screens = listOf(BottomBarScreen.Home, BottomBarScreen.Favorites, BottomBarScreen.Profile)
+    val screens = listOf(BottomBarScreen.Home, BottomBarScreen.MyTrips, BottomBarScreen.Profile)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
