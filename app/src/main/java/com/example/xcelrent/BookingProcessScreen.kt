@@ -205,28 +205,42 @@ fun RenterInfoStep(user: User?, pickup: String, delivery: String, onPickupChange
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Name: ${user?.firstName} ${user?.lastName}", fontWeight = FontWeight.Medium)
+                Text("Name: ${user?.firstName} ${user?.lastName}", fontWeight = FontWeight.Medium, color = Color.Black)
                 Text("Email: ${user?.email}", color = Color.Gray)
                 Text("Contact: ${user?.contactNum}", color = Color.Gray)
             }
         }
         
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Trip Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
+        Text("Trip Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
         Spacer(modifier = Modifier.height(8.dp))
         
         OutlinedTextField(
             value = pickup, onValueChange = onPickupChange,
             label = { Text("Pick-up Location") },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black,
+                focusedBorderColor = SportRed,
+                unfocusedBorderColor = Color.LightGray,
+                focusedLabelColor = SportRed
+            )
         )
         Spacer(modifier = Modifier.height(12.dp))
         OutlinedTextField(
             value = delivery, onValueChange = onDeliveryChange,
             label = { Text("Delivery/Return Location") },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black,
+                focusedBorderColor = SportRed,
+                unfocusedBorderColor = Color.LightGray,
+                focusedLabelColor = SportRed
+            )
         )
         
         Spacer(modifier = Modifier.height(32.dp))
@@ -257,7 +271,7 @@ fun PaymentMethodStep(onPaymentSelected: (PaymentMethod) -> Unit) {
     var showQrFor by remember { mutableStateOf<PaymentMethod?>(null) }
 
     Column {
-        Text("Select Payment Method", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
+        Text("Select Payment Method", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
         Text("Reservation Fee: ₱500.00 (Deductible)", style = MaterialTheme.typography.bodyMedium, color = SportRed)
         Spacer(modifier = Modifier.height(16.dp))
         
@@ -274,7 +288,7 @@ fun PaymentMethodStep(onPaymentSelected: (PaymentMethod) -> Unit) {
                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Payment, null, tint = SportRed)
                     Spacer(modifier = Modifier.width(16.dp))
-                    Text(method.name, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Text(method.name, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), color = Color.Black)
                     Icon(Icons.Filled.ChevronRight, null, tint = Color.Gray)
                 }
             }
@@ -285,14 +299,14 @@ fun PaymentMethodStep(onPaymentSelected: (PaymentMethod) -> Unit) {
         androidx.compose.ui.window.Dialog(onDismissRequest = { showQrFor = null }) {
             Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
                 Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Pay with ${showQrFor?.name}", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Text("Pay with ${showQrFor?.name}", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.Black)
                     Spacer(modifier = Modifier.height(16.dp))
                     // Mock QR Code
                     Box(modifier = Modifier.size(200.dp).background(Color.LightGray), contentAlignment = Alignment.Center) {
                         Icon(Icons.Filled.QrCode2, null, modifier = Modifier.size(150.dp))
                     }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Scan to pay ₱500.00", textAlign = TextAlign.Center)
+                    Text("Scan to pay ₱500.00", textAlign = TextAlign.Center, color = Color.Black)
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
                         onClick = { onPaymentSelected(showQrFor!!) },
@@ -315,7 +329,7 @@ fun BookingSummaryStep(car: Car, user: User?, pickup: String, delivery: String, 
     val finalTotal = carTotal - reservationFee
 
     Column {
-        Text("Booking Summary", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
+        Text("Booking Summary", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
         Spacer(modifier = Modifier.height(16.dp))
         
         SummarySection("Vehicle", "${car.model} (${car.plateNumber.ifEmpty { "ABC 1234" }})")
@@ -351,7 +365,7 @@ fun InfoCardItem(label: String, value: String, icon: androidx.compose.ui.graphic
         Spacer(modifier = Modifier.width(16.dp))
         Column {
             Text(label, fontSize = 12.sp, color = Color.Gray)
-            Text(value, fontWeight = FontWeight.Bold)
+            Text(value, fontWeight = FontWeight.Bold, color = Color.Black)
         }
     }
 }
@@ -360,14 +374,14 @@ fun InfoCardItem(label: String, value: String, icon: androidx.compose.ui.graphic
 fun SummarySection(title: String, detail: String) {
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
         Text(title, fontSize = 12.sp, color = Color.Gray)
-        Text(detail, fontWeight = FontWeight.Medium)
+        Text(detail, fontWeight = FontWeight.Medium, color = Color.Black)
     }
 }
 
 @Composable
 fun PriceRow(label: String, value: String, isBold: Boolean = false, color: Color = Color.Black) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal)
+        Text(label, fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal, color = if (isBold) Color.Black else color)
         Text(value, fontWeight = if (isBold) FontWeight.Bold else FontWeight.Bold, color = color)
     }
 }

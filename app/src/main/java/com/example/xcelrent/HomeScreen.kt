@@ -171,7 +171,8 @@ fun HomeTopBar() {
                     fontWeight = FontWeight.Bold,
                     fontFamily = InterFamily,
                     maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    color = Color.Black
                 )
                 Icon(Icons.Filled.KeyboardArrowDown, null, tint = Color.Gray)
             }
@@ -263,7 +264,7 @@ fun DateTimeSelector(
                 Icon(Icons.Filled.CalendarToday, null, tint = SportRed, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
-                    Text(dateFormatter.format(dateTime.time), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
+                    Text(dateFormatter.format(dateTime.time), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
                     Text(timeFormatter.format(dateTime.time), style = MaterialTheme.typography.bodySmall, color = Color.Gray, fontFamily = InterFamily)
                 }
             }
@@ -338,7 +339,8 @@ fun MinimalTimePickerDialog(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 20.dp),
-                    fontFamily = InterFamily
+                    fontFamily = InterFamily,
+                    color = Color.Black
                 )
                 TimePicker(
                     state = state,
@@ -378,7 +380,7 @@ fun MinimalTimePickerDialog(
 @Composable
 fun WhyChooseUsSection() {
     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-        Text("Why Choose Us?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
+        Text("Why Choose Us?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
         Spacer(modifier = Modifier.height(16.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -422,7 +424,7 @@ fun InfoCard(icon: ImageVector, title: String, subtitle: String, modifier: Modif
         ) {
             Icon(imageVector = icon, contentDescription = title, tint = SportRed)
             Spacer(modifier = Modifier.height(6.dp))
-            Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
+            Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
             Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray, fontFamily = InterFamily)
         }
     }
@@ -492,11 +494,13 @@ fun ExpandableCard(question: String, answer: String) {
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     fontFamily = InterFamily,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    color = Color.Black
                 )
                 Icon(
                     imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                    contentDescription = if (expanded) "Collapse" else "Expand"
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = Color.Black
                 )
             }
             AnimatedVisibility(visible = expanded) {
@@ -521,7 +525,8 @@ fun FaqSection() {
             "Frequently Asked Questions",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            fontFamily = InterFamily
+            fontFamily = InterFamily,
+            color = Color.Black
         )
         Spacer(modifier = Modifier.height(16.dp))
         ExpandableCard(
@@ -548,7 +553,7 @@ fun CarListSection(navController: NavController, cars: List<Car>, title: String)
         modifier = Modifier.padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
+        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
         cars.forEach { car ->
             CarListItem(car = car) { navController.navigate("details/${car.id}") }
         }
@@ -574,8 +579,8 @@ fun CarListItem(car: Car, onClick: () -> Unit) {
                 contentDescription = car.model,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .size(110.dp)
-                    .clip(RoundedCornerShape(16.dp)),
+                    .size(90.dp)
+                    .clip(RoundedCornerShape(12.dp)),
                 placeholder = painterResource(id = R.drawable.ic_launcher_foreground),
                 error = painterResource(id = R.drawable.ic_launcher_foreground)
             )
@@ -583,28 +588,35 @@ fun CarListItem(car: Car, onClick: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = car.model,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = InterFamily,
+                    color = Color.Black
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.AirlineSeatReclineNormal, null, modifier = Modifier.size(14.dp), tint = Color.Gray)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "4 Seaters",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray,
+                        fontFamily = InterFamily
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "See Details",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = SportRed,
                     fontWeight = FontWeight.Bold,
                     fontFamily = InterFamily
                 )
-                Text(
-                    text = car.specs,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
-                    fontFamily = InterFamily
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row {
-                    CarDetailChip(icon = Icons.Filled.AirlineSeatReclineNormal, text = "4 Seats")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    CarDetailChip(icon = Icons.Filled.LocalGasStation, text = "Petrol")
-                }
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "₱${car.price}",
-                    style = MaterialTheme.typography.titleLarge,
+                    text = "₱${car.price.toInt()}",
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = SportRed,
                     fontFamily = InterFamily
