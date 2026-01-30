@@ -14,6 +14,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,7 +29,6 @@ import androidx.navigation.NavController
 import com.example.xcelrent.ui.theme.InterFamily
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,7 +56,7 @@ fun ProfileScreen(navController: NavController) {
                     isLoading = false
                 }
         } else {
-            isLoading = false // No user logged in
+            isLoading = false
         }
     }
 
@@ -66,7 +67,11 @@ fun ProfileScreen(navController: NavController) {
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },
-        containerColor = Color(0xFFF5F5F5) // A light grey background
+        bottomBar = {
+            // Integrating the Bottom Navigation Bar here
+            BottomNavigationBar(navController = navController)
+        },
+        containerColor = Color(0xFFF5F5F5)
     ) { padding ->
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -79,7 +84,7 @@ fun ProfileScreen(navController: NavController) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = {
                         navController.navigate("landing") {
-                            popUpTo(0) // Clears the entire back stack
+                            popUpTo(0)
                         }
                     }) {
                         Text("Go to Landing Page")
@@ -107,7 +112,7 @@ fun ProfileScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Social Media Section
+                // Contact Us Section
                 ProfileSection(title = "Contact Us") {
                     val fbIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.facebook.com/xcelrentcarrental"))
                     val tiktokIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.tiktok.com/@xcelrent"))
@@ -116,25 +121,33 @@ fun ProfileScreen(navController: NavController) {
                     SocialProfileItem(text = "TikTok", onClick = { context.startActivity(tiktokIntent) })
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(32.dp))
 
-                // Logout Button
+                // Logout Button Fixed
                 Button(
                     onClick = {
                         auth.signOut()
+                        // Navigate to landing and clear everything to prevent back-navigation to profile
                         navController.navigate("landing") {
-                            popUpTo(0) // Clear entire back stack
+                            popUpTo(navController.graph.startDestinationId) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SportRed)
+                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SportRed), // Ensure SportRed is defined in your theme
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Filled.ExitToApp, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Log Out")
+                    Text("Log Out", fontWeight = FontWeight.Bold)
                 }
+
+                // Extra spacer for scrolling clarity above bottom nav
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
@@ -156,7 +169,6 @@ fun ProfileHeader(user: User?) {
                 .background(Color.LightGray),
             contentAlignment = Alignment.Center
         ) {
-            // Placeholder for profile picture
             Text(
                 text = user?.firstName?.take(1)?.uppercase() ?: "",
                 fontSize = 40.sp,
