@@ -8,5 +8,6 @@ data class Car(
     val imageUrl: String = "",
     val status: String = "Live",
     val plateNumber: String = "",
-    val location: String = ""
+    val location: String = "",
+    val ownerContact: String = "+63 912 345 6789"
 )

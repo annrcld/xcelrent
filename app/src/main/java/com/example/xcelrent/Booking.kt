@@ -10,7 +10,14 @@ data class Booking(
     val plateNumber: String = "",
     val pickupLocation: String = "",
     val deliveryLocation: String = "",
+    val pickupDate: String = "",
+    val returnDate: String = "",
+    val pickupTime: String = "",
+    val returnTime: String = "",
+    val driveType: String = "Self-Drive", // Self-Drive or With Driver
+    val serviceType: String = "Pick-up", // Pick-up or Delivery
     val paymentMethod: String = "",
+    val paymentProofUrl: String = "",
     val reservationFee: Double = 500.0,
     val totalPrice: Double = 0.0,
     val remainingBalance: Double = 0.0,

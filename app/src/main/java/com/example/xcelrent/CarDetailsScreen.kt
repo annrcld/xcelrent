@@ -1,6 +1,7 @@
 package com.example.xcelrent
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,11 +23,39 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.xcelrent.ui.theme.InterFamily
 import com.example.xcelrent.ui.theme.SportRed
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CarDetailsScreen(carId: String?, navController: NavController) {
+fun CarDetailsScreen(carId: String?, pickup: String, returnDate: String, navController: NavController) {
     val car = carList.find { it.id == carId } ?: return
+
+    val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    
+    var pickupDateTime by remember { 
+        mutableStateOf(
+            try { 
+                val cal = Calendar.getInstance()
+                cal.time = sdf.parse(pickup)!!
+                cal
+            } catch (e: Exception) { 
+                Calendar.getInstance() 
+            }
+        )
+    }
+    
+    var returnDateTime by remember { 
+        mutableStateOf(
+            try { 
+                val cal = Calendar.getInstance()
+                cal.time = sdf.parse(returnDate)!!
+                cal
+            } catch (e: Exception) { 
+                Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 3) }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -83,12 +112,27 @@ fun CarDetailsScreen(carId: String?, navController: NavController) {
                     )
                 }
                 Text(
-                    text = "$${car.price}/day",
+                    text = "₱${car.price.toInt()}/day",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = SportRed,
                     fontFamily = InterFamily
                 )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Date Selection in Details Screen
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+            ) {
+                Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                    DateTimeSelectorSmall("Pickup", pickupDateTime, Modifier.weight(1f)) { pickupDateTime = it }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    DateTimeSelectorSmall("Return", returnDateTime, Modifier.weight(1f)) { returnDateTime = it }
+                }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -116,13 +160,62 @@ fun CarDetailsScreen(carId: String?, navController: NavController) {
             Spacer(modifier = Modifier.height(48.dp))
 
             Button(
-                onClick = { navController.navigate("booking_process/${car.id}") },
+                onClick = { 
+                    val pStr = sdf.format(pickupDateTime.time)
+                    val rStr = sdf.format(returnDateTime.time)
+                    navController.navigate("booking_process/${car.id}?pickup=$pStr&return=$rStr") 
+                },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = SportRed),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Text("Proceed to Booking", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DateTimeSelectorSmall(
+    label: String,
+    dateTime: Calendar,
+    modifier: Modifier = Modifier,
+    onDateTimeSelected: (Calendar) -> Unit
+) {
+    // Reuse the same logic as HomeScreen but maybe more compact if needed
+    // For now, let's just make it clickable and show dialogs. 
+    // I will use DateTimeSelector from HomeScreen logic but simplified.
+    
+    var showDatePicker by remember { mutableStateOf(false) }
+    val tempDatePickerState = rememberDatePickerState(initialSelectedDateMillis = dateTime.timeInMillis)
+    val dateFormatter = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+
+    Column(modifier = modifier.clickable { showDatePicker = true }) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = Color.Gray, fontFamily = InterFamily)
+        Text(dateFormatter.format(dateTime.time), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = { 
+                    showDatePicker = false
+                    val calendar = Calendar.getInstance()
+                    tempDatePickerState.selectedDateMillis?.let { calendar.timeInMillis = it }
+                    onDateTimeSelected(calendar)
+                }) {
+                    Text("OK", color = SportRed)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = tempDatePickerState)
         }
     }
 }

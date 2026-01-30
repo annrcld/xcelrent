@@ -3,9 +3,11 @@ package com.example.xcelrent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.xcelrent.ui.theme.XcelrentTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
@@ -28,13 +30,31 @@ class MainActivity : ComponentActivity() {
                     composable("home") { HomeScreen(navController) }
                     composable("profile") { ProfileScreen(navController) }
                     composable("mytrips") { MyTripsScreen(navController) }
-                    composable("details/{carId}") { backStackEntry ->
+                    composable(
+                        route = "details/{carId}?pickup={pickup}&return={return}",
+                        arguments = listOf(
+                            navArgument("carId") { type = NavType.StringType },
+                            navArgument("pickup") { type = NavType.StringType; defaultValue = "" },
+                            navArgument("return") { type = NavType.StringType; defaultValue = "" }
+                        )
+                    ) { backStackEntry ->
                         val carId = backStackEntry.arguments?.getString("carId")
-                        CarDetailsScreen(carId, navController)
+                        val pickup = backStackEntry.arguments?.getString("pickup") ?: ""
+                        val returnDate = backStackEntry.arguments?.getString("return") ?: ""
+                        CarDetailsScreen(carId, pickup, returnDate, navController)
                     }
-                    composable("booking_process/{carId}") { backStackEntry ->
+                    composable(
+                        route = "booking_process/{carId}?pickup={pickup}&return={return}",
+                        arguments = listOf(
+                            navArgument("carId") { type = NavType.StringType },
+                            navArgument("pickup") { type = NavType.StringType; defaultValue = "" },
+                            navArgument("return") { type = NavType.StringType; defaultValue = "" }
+                        )
+                    ) { backStackEntry ->
                         val carId = backStackEntry.arguments?.getString("carId")
-                        BookingProcessScreen(carId, navController)
+                        val pickup = backStackEntry.arguments?.getString("pickup") ?: ""
+                        val returnDate = backStackEntry.arguments?.getString("return") ?: ""
+                        BookingProcessScreen(carId, pickup, returnDate, navController)
                     }
                 }
             }

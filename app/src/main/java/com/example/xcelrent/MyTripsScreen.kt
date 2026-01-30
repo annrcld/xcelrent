@@ -6,7 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,12 +48,13 @@ fun MyTripsScreen(navController: NavController) {
 
     Scaffold(
         topBar = {
-            Column(modifier = Modifier.padding(24.dp)) {
+            Column(modifier = Modifier.padding(top = 48.dp, start = 24.dp, end = 24.dp, bottom = 16.dp)) {
                 Text(
                     "My Trips",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = InterFamily
+                    fontFamily = InterFamily,
+                    color = Color.Black
                 )
                 Text(
                     "Manage your active and past bookings",
@@ -119,7 +120,8 @@ fun BookingListItem(booking: Booking) {
                             text = booking.carModel,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = InterFamily
+                            fontFamily = InterFamily,
+                            color = Color.Black
                         )
                         StatusBadge(status = booking.status)
                     }
@@ -131,7 +133,7 @@ fun BookingListItem(booking: Booking) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "₱${booking.totalPrice}",
+                        text = "₱${String.format("%,.2f", booking.totalPrice)}",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = SportRed,
@@ -142,26 +144,68 @@ fun BookingListItem(booking: Booking) {
             
             Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF0F0F0))
             
+            // Trip Details (Dates & Times)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                TripInfoItem(label = "Pickup", value = booking.pickupLocation)
-                TripInfoItem(label = "Delivery", value = booking.deliveryLocation)
+                TripDetailItem(label = "PICK-UP", date = booking.pickupDate, time = booking.pickupTime)
+                TripDetailItem(label = "RETURN", date = booking.returnDate, time = booking.returnTime, alignEnd = true)
             }
             
             Spacer(modifier = Modifier.height(12.dp))
             
+            // Locations and Mode
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                TripInfoRow(icon = Icons.Filled.DriveEta, label = "Mode", value = "${booking.driveType} (${booking.serviceType})")
+                TripInfoRow(icon = Icons.Filled.LocationOn, label = if (booking.serviceType == "Pick-up") "Pick-up Point" else "Delivery Address", value = booking.pickupLocation)
+                TripInfoRow(icon = Icons.Filled.KeyboardReturn, label = "Return Location", value = booking.deliveryLocation)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Balance Summary
             Surface(
-                color = Color(0xFFF5F5F5),
-                shape = RoundedCornerShape(8.dp),
+                color = SportRed.copy(alpha = 0.05f),
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier.padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Remaining Balance:", fontSize = 12.sp, color = Color.Gray)
-                    Text("₱${booking.remainingBalance}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Column {
+                        Text("REMAINING BALANCE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                        Text("₱${String.format("%,.2f", booking.remainingBalance)}", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = SportRed)
+                    }
+                    // Quick Call/Contact button simulation
+                    IconButton(
+                        onClick = { /* Handle call */ },
+                        modifier = Modifier.size(40.dp).background(Color.White, RoundedCornerShape(10.dp))
+                    ) {
+                        Icon(Icons.Filled.Phone, null, tint = SportRed, modifier = Modifier.size(20.dp))
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun TripDetailItem(label: String, date: String, time: String, alignEnd: Boolean = false) {
+    Column(horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start) {
+        Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+        Text(date, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+        Text(time, fontSize = 11.sp, color = Color.Gray)
+    }
+}
+
+@Composable
+fun TripInfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, tint = SportRed, modifier = Modifier.size(16.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(label, fontSize = 9.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+            Text(value, fontSize = 12.sp, color = Color.Black, fontWeight = FontWeight.Medium, maxLines = 1)
         }
     }
 }
@@ -172,6 +216,8 @@ fun StatusBadge(status: String) {
         "Confirmed" -> Color(0xFF4CAF50)
         "On-going" -> Color(0xFF2196F3)
         "Pending" -> Color(0xFFFF9800)
+        "Completed" -> Color(0xFF9C27B0)
+        "Cancelled" -> Color(0xFFF44336)
         else -> Color.Gray
     }
     Surface(
@@ -186,14 +232,6 @@ fun StatusBadge(status: String) {
             fontWeight = FontWeight.Bold,
             fontFamily = InterFamily
         )
-    }
-}
-
-@Composable
-fun TripInfoItem(label: String, value: String) {
-    Column {
-        Text(label, fontSize = 10.sp, color = Color.Gray, fontFamily = InterFamily)
-        Text(value, fontSize = 13.sp, fontWeight = FontWeight.Medium, fontFamily = InterFamily)
     }
 }
 
