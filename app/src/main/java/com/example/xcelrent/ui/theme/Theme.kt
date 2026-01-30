@@ -18,6 +18,7 @@ private val RedBlackColorScheme = darkColorScheme(
     onError = PureBlack
 )
 
+
 @Composable
 fun XcelrentTheme(content: @Composable () -> Unit) {
     MaterialTheme(

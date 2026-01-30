@@ -145,21 +145,55 @@ fun BottomNavigationBar(navController: NavController) {
 @Composable
 fun HomeTopBar() {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column {
-            Text("Your Location", style = MaterialTheme.typography.bodySmall, color = Color.Gray, fontFamily = InterFamily)
+        // Added Modifier.weight(1f) to prevent pushing the notification icon out
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                "Your Location",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
+                fontFamily = InterFamily
+            )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.LocationOn, null, tint = SportRed, modifier = Modifier.size(20.dp))
+                Icon(
+                    Icons.Filled.LocationOn,
+                    null,
+                    tint = SportRed,
+                    modifier = Modifier.size(20.dp)
+                )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Manila, Philippines", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
+                Text(
+                    "Manila, Philippines",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = InterFamily,
+                    maxLines = 1, // Prevent text from wrapping and breaking layout
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
                 Icon(Icons.Filled.KeyboardArrowDown, null, tint = Color.Gray)
             }
         }
-        BadgedBox(badge = { Badge(containerColor = SportRed) { Text("3") } }) {
-            Icon(Icons.Filled.Notifications, "Notifications", tint = Color.Black, modifier = Modifier.size(28.dp))
+
+        Spacer(modifier = Modifier.width(16.dp)) // Ensures a minimum gap
+
+        BadgedBox(
+            badge = {
+                Badge(containerColor = SportRed) {
+                    Text("3", color = Color.White)
+                }
+            }
+        ) {
+            Icon(
+                Icons.Filled.Notifications,
+                "Notifications",
+                tint = Color.Black,
+                modifier = Modifier.size(28.dp)
+            )
         }
     }
 }
