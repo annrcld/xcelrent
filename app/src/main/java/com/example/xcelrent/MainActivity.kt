@@ -32,6 +32,10 @@ class MainActivity : ComponentActivity() {
                         val carId = backStackEntry.arguments?.getString("carId")
                         CarDetailsScreen(carId, navController)
                     }
+                    composable("booking_process/{carId}") { backStackEntry ->
+                        val carId = backStackEntry.arguments?.getString("carId")
+                        BookingProcessScreen(carId, navController)
+                    }
                 }
             }
         }

@@ -18,17 +18,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.xcelrent.ui.theme.InterFamily
+import com.example.xcelrent.ui.theme.SportRed
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CarDetailsScreen(carId: String?, navController: NavController) {
     val car = carList.find { it.id == carId } ?: return
-
-    var showDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -118,25 +116,14 @@ fun CarDetailsScreen(carId: String?, navController: NavController) {
             Spacer(modifier = Modifier.height(48.dp))
 
             Button(
-                onClick = { showDialog = true },
+                onClick = { navController.navigate("booking_process/${car.id}") },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = SportRed),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Text("Confirm Booking", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
+                Text("Proceed to Booking", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
             }
         }
-    }
-
-    if (showDialog) {
-        BookingSuccessDialog(
-            onDismiss = { 
-                showDialog = false
-                navController.navigate("mytrips") {
-                    popUpTo("home") { inclusive = false }
-                }
-            }
-        )
     }
 }
 
@@ -165,52 +152,5 @@ fun FeatureItem(text: String) {
         Icon(Icons.Filled.CheckCircle, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(8.dp))
         Text(text, style = MaterialTheme.typography.bodyMedium, fontFamily = InterFamily)
-    }
-}
-
-@Composable
-fun BookingSuccessDialog(onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    Icons.Filled.CheckCircle,
-                    null,
-                    tint = Color(0xFF4CAF50),
-                    modifier = Modifier.size(80.dp)
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    "Booking Confirmed!",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = InterFamily
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "Your ride is ready. You can find the details in My Trips.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    fontFamily = InterFamily
-                )
-                Spacer(modifier = Modifier.height(32.dp))
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = SportRed),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Great!", fontFamily = InterFamily)
-                }
-            }
-        }
     }
 }

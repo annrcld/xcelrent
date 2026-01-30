@@ -6,5 +6,7 @@ data class Car(
     val price: Double = 0.0,
     val specs: String = "",
     val imageUrl: String = "",
-    val status: String = "Live"
+    val status: String = "Live",
+    val plateNumber: String = "",
+    val location: String = ""
 )

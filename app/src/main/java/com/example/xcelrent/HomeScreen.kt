@@ -29,6 +29,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.example.xcelrent.ui.theme.InterFamily
+import com.example.xcelrent.ui.theme.SportRed
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -45,13 +46,11 @@ sealed class BottomBarScreen(
 }
 
 val carList = listOf(
-    Car("car_001", "Toyota Camry", 55.0, "4-door, A/C", "https://images.hgmsites.net/med/2023-toyota-camry-se-auto-natl-angular-front-exterior-view_100857360_m.jpg", "Live"),
-    Car("car_002", "Honda CR-V", 70.0, "5-door, SUV", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTFb_P9pn8AGyKRVw66bk28SMPjQ3EHIzGePQ&s", "Live"),
-    Car("car_003", "BMW 3 Series", 95.0, "Luxury, Sport", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoE5_w-VuOKWtlS9i1xM_NUPbZV__Usy8rLg&s", "Live"),
-    Car("car_004", "Ford Mustang", 120.0, "2-door, Coupe", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhCfUi1d8kENke9r9oRkrIvTD_0jObZkYBcA&s", "Live")
+    Car("car_001", "Toyota Camry", 2500.0, "4-door, A/C", "https://images.hgmsites.net/med/2023-toyota-camry-se-auto-natl-angular-front-exterior-view_100857360_m.jpg", "Live", "NDS 1234", "Quezon City"),
+    Car("car_002", "Honda CR-V", 3500.0, "5-door, SUV", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTFb_P9pn8AGyKRVw66bk28SMPjQ3EHIzGePQ&s", "Live", "GHT 5678", "Makati City"),
+    Car("car_003", "BMW 3 Series", 5500.0, "Luxury, Sport", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoE5_w-VuOKWtlS9i1xM_NUPbZV__Usy8rLg&s", "Live", "BMR 999", "Taguig City"),
+    Car("car_004", "Ford Mustang", 8000.0, "2-door, Coupe", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhCfUi1d8kENke9r9oRkrIvTD_0jObZkYBcA&s", "Live", "FRD 001", "Pasig City")
 )
-
-val SportRed = Color(0xFFE53935)
 
 // --- Main Screen Composable ---
 
@@ -151,7 +150,6 @@ fun HomeTopBar() {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // Added Modifier.weight(1f) to prevent pushing the notification icon out
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 "Your Location",
@@ -172,14 +170,14 @@ fun HomeTopBar() {
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     fontFamily = InterFamily,
-                    maxLines = 1, // Prevent text from wrapping and breaking layout
+                    maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
                 Icon(Icons.Filled.KeyboardArrowDown, null, tint = Color.Gray)
             }
         }
 
-        Spacer(modifier = Modifier.width(16.dp)) // Ensures a minimum gap
+        Spacer(modifier = Modifier.width(16.dp))
 
         BadgedBox(
             badge = {
@@ -217,7 +215,7 @@ fun SearchCarCard(onSearchClick: () -> Unit) {
             }
             Spacer(modifier = Modifier.height(24.dp))
             Button(
-                onClick = onSearchClick, // Trigger the search
+                onClick = onSearchClick,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = SportRed),
                 shape = RoundedCornerShape(16.dp)
@@ -251,7 +249,6 @@ fun DateTimeSelector(
     val dateFormatter = SimpleDateFormat("EEE, dd MMM", Locale.getDefault())
     val timeFormatter = SimpleDateFormat("hh:mm a", Locale.getDefault())
 
-    // The clickable UI element
     Column(modifier = modifier.clickable { showDatePicker = true }) {
         Text(label, style = MaterialTheme.typography.labelLarge, color = Color.Gray, fontFamily = InterFamily, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
@@ -273,7 +270,6 @@ fun DateTimeSelector(
         }
     }
 
-    // --- Date Picker Dialog ---
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -308,7 +304,6 @@ fun DateTimeSelector(
         }
     }
 
-    // --- Time Picker Dialog ---
     if (showTimePicker) {
         MinimalTimePickerDialog(
             onDismiss = { showTimePicker = false },
@@ -421,12 +416,12 @@ fun InfoCard(icon: ImageVector, title: String, subtitle: String, modifier: Modif
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
     ) {
         Column(
-            modifier = Modifier.padding(12.dp).fillMaxWidth(), // Reduced padding
-            horizontalAlignment = Alignment.Start, // Left-aligned content
-            verticalArrangement = Arrangement.Top // Aligned to top
+            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.Top
         ) {
             Icon(imageVector = icon, contentDescription = title, tint = SportRed)
-            Spacer(modifier = Modifier.height(6.dp)) // Reduced spacer
+            Spacer(modifier = Modifier.height(6.dp))
             Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily)
             Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray, fontFamily = InterFamily)
         }
@@ -600,7 +595,6 @@ fun CarListItem(car: Car, onClick: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Additional Details (Seats, Fuel)
                 Row {
                     CarDetailChip(icon = Icons.Filled.AirlineSeatReclineNormal, text = "4 Seats")
                     Spacer(modifier = Modifier.width(8.dp))
@@ -609,7 +603,7 @@ fun CarListItem(car: Car, onClick: () -> Unit) {
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "$${car.price}",
+                    text = "₱${car.price}",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = SportRed,
