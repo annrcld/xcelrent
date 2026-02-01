@@ -28,6 +28,7 @@ class MainActivity : ComponentActivity() {
                     composable("login") { LoginScreen(navController) }
                     composable("create_account") { CreateAccountScreen(navController) }
                     composable("home") { HomeScreen(navController) }
+                    composable("admin_home") { AdminHomeScreen(navController) }
                     composable("profile") { ProfileScreen(navController) }
                     composable("mytrips") { MyTripsScreen(navController) }
                     composable(
