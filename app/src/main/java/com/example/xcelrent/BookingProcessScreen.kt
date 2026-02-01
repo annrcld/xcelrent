@@ -1,7 +1,6 @@
 package com.example.xcelrent
 
 import android.widget.Toast
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,11 +17,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import com.example.xcelrent.ui.theme.InterFamily
 import com.example.xcelrent.ui.theme.SportRed
@@ -36,7 +39,7 @@ import java.util.concurrent.TimeUnit
 @Composable
 fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, navController: NavController) {
     val car = carList.find { it.id == carId } ?: return
-    var currentStep by remember { mutableStateOf(1) }
+    var currentStep by remember { mutableIntStateOf(1) }
     val context = LocalContext.current
     
     // Trip Details
@@ -46,8 +49,8 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
     var returnTime by remember { mutableStateOf("10:00 AM") }
     
     // Service Selections
-    var driveType by remember { mutableStateOf("Self-Drive") } // "Self-Drive" or "With Driver"
-    var serviceType by remember { mutableStateOf("Pick-up") } // "Pick-up" or "Delivery"
+    var driveType by remember { mutableStateOf("Self-Drive") }
+    var serviceType by remember { mutableStateOf("Pick-up") }
     
     // Locations
     var deliveryAddress by remember { mutableStateOf("") }
@@ -57,6 +60,13 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
     var selectedPaymentMethod by remember { mutableStateOf<PaymentMethod?>(null) }
     var paymentProofUrl by remember { mutableStateOf("") }
     
+    // Step 4: Credentials
+    var driversLicenseUrl by remember { mutableStateOf("") }
+    var ltoQrUrl by remember { mutableStateOf("") }
+    var proofOfBillingUrl by remember { mutableStateOf("") }
+    var selfieWithIdUrl by remember { mutableStateOf("") }
+    var secondValidIdUrl by remember { mutableStateOf("") }
+    
     // User Data
     var user by remember { mutableStateOf<User?>(null) }
     var isBooking by remember { mutableStateOf(false) }
@@ -64,10 +74,7 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
 
-    // Calculate Days
-    val totalDays = remember(pickupDate, returnDate) {
-        calculateDays(pickupDate, returnDate)
-    }
+    val totalDays = remember(pickupDate, returnDate) { calculateDays(pickupDate, returnDate) }
 
     LaunchedEffect(Unit) {
         auth.currentUser?.uid?.let { uid ->
@@ -82,10 +89,8 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
             TopAppBar(
                 title = { Text("Booking Process", fontFamily = InterFamily, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = { 
-                        if (currentStep > 1) currentStep-- else navController.popBackStack()
-                    }) {
-                        Icon(Icons.Filled.ArrowBack, null)
+                    IconButton(onClick = { if (currentStep > 1) currentStep -= 1 else navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
@@ -105,12 +110,13 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
                     .verticalScroll(rememberScrollState())
                     .padding(24.dp)
             ) {
-                // Step Indicator
+                // Expanded Step Indicator
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     StepIndicator(step = 1, currentStep = currentStep, label = "Vehicle")
                     StepIndicator(step = 2, currentStep = currentStep, label = "Renter")
                     StepIndicator(step = 3, currentStep = currentStep, label = "Payment")
-                    StepIndicator(step = 4, currentStep = currentStep, label = "Summary")
+                    StepIndicator(step = 4, currentStep = currentStep, label = "Verify")
+                    StepIndicator(step = 5, currentStep = currentStep, label = "Summary")
                 }
                 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -118,44 +124,24 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
                 when (currentStep) {
                     1 -> VehicleDetailsStep(car) { currentStep = 2 }
                     2 -> RenterInfoStep(
-                        user = user, 
-                        car = car,
-                        pickupDate = pickupDate,
-                        returnDate = returnDate,
-                        pickupTime = pickupTime,
-                        returnTime = returnTime,
-                        driveType = driveType,
-                        serviceType = serviceType,
-                        deliveryAddress = deliveryAddress,
-                        returnAddress = returnAddress,
-                        onPickupDateChange = { pickupDate = it },
-                        onReturnDateChange = { returnDate = it },
-                        onPickupTimeChange = { pickupTime = it },
-                        onReturnTimeChange = { returnTime = it },
-                        onDriveTypeChange = { driveType = it },
-                        onServiceTypeChange = { serviceType = it },
-                        onDeliveryAddressChange = { deliveryAddress = it },
-                        onReturnAddressChange = { returnAddress = it },
-                        onNext = { currentStep = 3 }
+                        user, car, pickupDate, returnDate, pickupTime, returnTime, driveType, serviceType, deliveryAddress, returnAddress,
+                        { pickupDate = it }, { returnDate = it }, { pickupTime = it }, { returnTime = it }, { driveType = it }, { serviceType = it }, { deliveryAddress = it }, { returnAddress = it },
+                        { currentStep = 3 }
                     )
-                    3 -> PaymentMethodStep(onPaymentConfirmed = { method, proof -> 
+                    3 -> PaymentMethodStep { method, proof -> 
                         selectedPaymentMethod = method
                         paymentProofUrl = proof
                         currentStep = 4 
-                    })
-                    4 -> BookingSummaryStep(
-                        car = car, 
-                        user = user, 
-                        pickupDate = pickupDate,
-                        returnDate = returnDate,
-                        pickupTime = pickupTime,
-                        returnTime = returnTime,
-                        driveType = driveType,
-                        serviceType = serviceType,
-                        deliveryAddress = if (serviceType == "Delivery") deliveryAddress else car.location,
-                        returnAddress = returnAddress,
-                        totalDays = totalDays,
-                        payment = selectedPaymentMethod!!
+                    }
+                    4 -> CredentialsStep(
+                        driversLicenseUrl, ltoQrUrl, proofOfBillingUrl, selfieWithIdUrl, secondValidIdUrl,
+                        { driversLicenseUrl = it }, { ltoQrUrl = it }, { proofOfBillingUrl = it }, { selfieWithIdUrl = it }, { secondValidIdUrl = it },
+                        { currentStep = 5 }
+                    )
+                    5 -> BookingSummaryStep(
+                        car, user, pickupDate, returnDate, pickupTime, returnTime, driveType, serviceType, 
+                        if (serviceType == "Delivery") deliveryAddress else car.location, returnAddress, 
+                        totalDays, selectedPaymentMethod!!
                     ) {
                         isBooking = true
                         val currentUser = auth.currentUser
@@ -165,40 +151,28 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
                             val totalPrice = car.price * totalDays
                             
                             val booking = Booking(
-                                id = bookingId,
-                                userId = currentUser.uid,
-                                carId = car.id,
-                                carModel = car.model,
+                                id = bookingId, userId = currentUser.uid, carId = car.id, carModel = car.model,
                                 plateNumber = car.plateNumber.ifEmpty { "ABC 1234" },
                                 pickupLocation = if (serviceType == "Pick-up") car.location else deliveryAddress,
                                 deliveryLocation = returnAddress,
-                                pickupDate = pickupDate,
-                                returnDate = returnDate,
-                                pickupTime = pickupTime,
-                                returnTime = returnTime,
-                                driveType = driveType,
-                                serviceType = serviceType,
-                                paymentMethod = selectedPaymentMethod?.name ?: "",
-                                paymentProofUrl = paymentProofUrl,
-                                reservationFee = reservationFee,
-                                totalPrice = totalPrice,
-                                remainingBalance = totalPrice - reservationFee,
-                                status = "Pending", 
-                                timestamp = Timestamp.now(),
-                                imageUrl = car.imageUrl
+                                pickupDate = pickupDate, returnDate = returnDate, pickupTime = pickupTime, returnTime = returnTime,
+                                driveType = driveType, serviceType = serviceType,
+                                paymentMethod = selectedPaymentMethod?.name ?: "", paymentProofUrl = paymentProofUrl,
+                                reservationFee = reservationFee, totalPrice = totalPrice, remainingBalance = totalPrice - reservationFee,
+                                status = "Pending", timestamp = Timestamp.now(), imageUrl = car.imageUrl,
+                                driversLicenseUrl = driversLicenseUrl, ltoQrUrl = ltoQrUrl,
+                                proofOfBillingUrl = proofOfBillingUrl, selfieWithIdUrl = selfieWithIdUrl, secondValidIdUrl = secondValidIdUrl
                             )
 
                             db.collection("bookings").document(bookingId).set(booking)
                                 .addOnSuccessListener {
                                     isBooking = false
                                     Toast.makeText(context, "Booking successful!", Toast.LENGTH_LONG).show()
-                                    navController.navigate("mytrips") {
-                                        popUpTo("home") { inclusive = false }
-                                    }
+                                    navController.navigate("mytrips") { popUpTo("home") { inclusive = false } }
                                 }
                                 .addOnFailureListener {
                                     isBooking = false
-                                    Toast.makeText(context, "Failed to book: ${it.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
                                 }
                         }
                     }
@@ -208,16 +182,61 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
     }
 }
 
-fun calculateDays(start: String, end: String): Int {
-    return try {
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val date1 = sdf.parse(start)
-        val date2 = sdf.parse(end)
-        val diff = date2!!.time - date1!!.time
-        val days = TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS).toInt()
-        if (days < 1) 1 else days
-    } catch (e: Exception) {
-        1
+@Composable
+fun CredentialsStep(
+    dl: String, lto: String, pob: String, selfie: String, sid: String,
+    onDl: (String) -> Unit, onLto: (String) -> Unit, onPob: (String) -> Unit, onSelfie: (String) -> Unit, onSid: (String) -> Unit,
+    onNext: () -> Unit
+) {
+    Column {
+        Text("Verify Identity", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
+        Text("Please upload clear photos of the following documents to proceed.", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+        Spacer(modifier = Modifier.height(24.dp))
+
+        UploadItem(label = "Driver's License", isUploaded = dl.isNotEmpty()) { onDl("dummy_dl_url") }
+        UploadItem(label = "LTO Portal QR Code (Screenshot)", isUploaded = lto.isNotEmpty()) { onLto("dummy_lto_url") }
+        UploadItem(label = "Proof of Billing (Electricity/Water)", isUploaded = pob.isNotEmpty()) { onPob("dummy_pob_url") }
+        UploadItem(label = "Selfie with ID", isUploaded = selfie.isNotEmpty()) { onSelfie("dummy_selfie_url") }
+        UploadItem(label = "Secondary Valid ID", isUploaded = sid.isNotEmpty()) { onSid("dummy_sid_url") }
+
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(
+            onClick = onNext,
+            enabled = dl.isNotEmpty() && lto.isNotEmpty() && pob.isNotEmpty() && selfie.isNotEmpty() && sid.isNotEmpty(),
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = SportRed),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text("Next: Final Summary", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun UploadItem(label: String, isUploaded: Boolean, onUpload: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (isUploaded) Color(0xFFE8F5E9) else Color(0xFFF5F5F5))
+            .clickable { onUpload() }
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = if (isUploaded) Icons.Filled.CheckCircle else Icons.Filled.CloudUpload,
+            contentDescription = null,
+            tint = if (isUploaded) Color(0xFF4CAF50) else Color.Gray,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(label, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium, color = if (isUploaded) Color(0xFF2E7D32) else Color.Black)
+        if (isUploaded) {
+            Text("Uploaded", fontSize = 12.sp, color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold)
+        } else {
+            Text("Upload", fontSize = 12.sp, color = SportRed, fontWeight = FontWeight.Bold)
+        }
     }
 }
 
@@ -227,34 +246,27 @@ fun StepIndicator(step: Int, currentStep: Int, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
-                .size(32.dp)
+                .size(28.dp)
                 .clip(androidx.compose.foundation.shape.CircleShape)
                 .background(if (isActive) SportRed else Color.LightGray),
             contentAlignment = Alignment.Center
         ) {
-            Text(step.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(step.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
         }
-        Text(label, fontSize = 10.sp, color = if (isActive) SportRed else Color.Gray, fontFamily = InterFamily)
+        Text(label, fontSize = 9.sp, color = if (isActive) SportRed else Color.Gray, fontFamily = InterFamily)
     }
 }
 
 @Composable
 fun VehicleDetailsStep(car: Car, onNext: () -> Unit) {
     Column {
-        Text("Vehicle Overview", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
+        Text("Vehicle Overview", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Black)
         Spacer(modifier = Modifier.height(16.dp))
-        
-        InfoCardItem(label = "Plate Number", value = car.plateNumber.ifEmpty { "ABC 1234" }, icon = Icons.Filled.CreditCard)
-        InfoCardItem(label = "Location", value = car.location.ifEmpty { "Quezon City, Metro Manila" }, icon = Icons.Filled.LocationOn)
-        InfoCardItem(label = "Coding Day", value = "Wednesday (Ends in 5 & 6)", icon = Icons.Filled.EventBusy)
-        
+        InfoCardItem("Plate Number", car.plateNumber.ifEmpty { "ABC 1234" }, Icons.Filled.CreditCard)
+        InfoCardItem("Location", car.location, Icons.Filled.LocationOn)
+        InfoCardItem("Coding Day", "Varies by Plate", Icons.Filled.EventBusy)
         Spacer(modifier = Modifier.height(32.dp))
-        Button(
-            onClick = onNext,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = SportRed),
-            shape = RoundedCornerShape(16.dp)
-        ) {
+        Button(onClick = onNext, modifier = Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = SportRed), shape = RoundedCornerShape(16.dp)) {
             Text("Next: Renter Information", fontWeight = FontWeight.Bold)
         }
     }
@@ -263,323 +275,286 @@ fun VehicleDetailsStep(car: Car, onNext: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RenterInfoStep(
-    user: User?, 
-    car: Car,
-    pickupDate: String, returnDate: String,
-    pickupTime: String, returnTime: String,
-    driveType: String, serviceType: String,
-    deliveryAddress: String, returnAddress: String,
-    onPickupDateChange: (String) -> Unit, onReturnDateChange: (String) -> Unit,
-    onPickupTimeChange: (String) -> Unit, onReturnTimeChange: (String) -> Unit,
-    onDriveTypeChange: (String) -> Unit, onServiceTypeChange: (String) -> Unit,
-    onDeliveryAddressChange: (String) -> Unit, onReturnAddressChange: (String) -> Unit,
+    user: User?, car: Car, pickupDate: String, returnDate: String, pickupTime: String, returnTime: String, driveType: String, serviceType: String, deliveryAddress: String, returnAddress: String,
+    onPickupDate: (String) -> Unit, onReturnDate: (String) -> Unit, onPickupTime: (String) -> Unit, onReturnTime: (String) -> Unit, onDriveType: (String) -> Unit, onServiceType: (String) -> Unit, onDelivery: (String) -> Unit, onReturnLoc: (String) -> Unit,
     onNext: () -> Unit
 ) {
     val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val timeSdf = SimpleDateFormat("hh:mm a", Locale.getDefault())
+
+    var showPickupDatePicker by remember { mutableStateOf(false) }
+    var showReturnDatePicker by remember { mutableStateOf(false) }
+    var showPickupTimePicker by remember { mutableStateOf(false) }
+    var showReturnTimePicker by remember { mutableStateOf(false) }
+
+    val pickupDatePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = try { sdf.parse(pickupDate)?.time } catch (_: Exception) { null }
+    )
+    val returnDatePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = try { sdf.parse(returnDate)?.time } catch (_: Exception) { null }
+    )
+
+    val pTimeCal = Calendar.getInstance().apply { 
+        try { time = timeSdf.parse(pickupTime) ?: time } catch (_: Exception) {}
+    }
+    val pickupTimePickerState = rememberTimePickerState(
+        initialHour = pTimeCal.get(Calendar.HOUR_OF_DAY),
+        initialMinute = pTimeCal.get(Calendar.MINUTE)
+    )
+
+    val rTimeCal = Calendar.getInstance().apply { 
+        try { time = timeSdf.parse(returnTime) ?: time } catch (_: Exception) {}
+    }
+    val returnTimePickerState = rememberTimePickerState(
+        initialHour = rTimeCal.get(Calendar.HOUR_OF_DAY),
+        initialMinute = rTimeCal.get(Calendar.MINUTE)
+    )
+
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.Black,
+        unfocusedTextColor = Color.Black,
+        focusedLabelColor = Color.Black,
+        unfocusedLabelColor = Color.DarkGray,
+        focusedBorderColor = SportRed,
+        unfocusedBorderColor = Color.LightGray,
+        focusedContainerColor = Color.White,
+        unfocusedContainerColor = Color.White,
+        cursorColor = SportRed
+    )
+    val textStyle = TextStyle(color = Color.Black, fontSize = 14.sp)
+
+    // Date Pickers
+    if (showPickupDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showPickupDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickupDatePickerState.selectedDateMillis?.let { onPickupDate(sdf.format(Date(it))) }
+                    showPickupDatePicker = false
+                }) { Text("OK", color = SportRed, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPickupDatePicker = false }) { Text("Cancel", color = Color.Gray) }
+            }
+        ) { DatePicker(state = pickupDatePickerState) }
+    }
+
+    if (showReturnDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showReturnDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    returnDatePickerState.selectedDateMillis?.let { onReturnDate(sdf.format(Date(it))) }
+                    showReturnDatePicker = false
+                }) { Text("OK", color = SportRed, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReturnDatePicker = false }) { Text("Cancel", color = Color.Gray) }
+            }
+        ) { DatePicker(state = returnDatePickerState) }
+    }
+
 
     Column {
-        Text("Renter Information", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-            shape = RoundedCornerShape(16.dp)
-        ) {
+        Text("Renter Information", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Black)
+        Spacer(modifier = Modifier.height(12.dp))
+        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Name: ${user?.firstName} ${user?.lastName}", fontWeight = FontWeight.Medium, color = Color.Black)
-                Text("Email: ${user?.email}", color = Color.Gray)
-                Text("Contact: ${user?.contactNum}", color = Color.Gray)
+                Text("${user?.firstName} ${user?.lastName}", fontWeight = FontWeight.Bold, color = Color.Black)
+                Text("${user?.email} | ${user?.contactNum}", fontSize = 12.sp, color = Color.Gray)
             }
         }
-        
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Service Options", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
-        
+        Text("Service Options", fontWeight = FontWeight.Bold, color = Color.Black)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OptionButton(label = "Self-Drive", selected = driveType == "Self-Drive", modifier = Modifier.weight(1f)) { onDriveTypeChange("Self-Drive") }
-            OptionButton(label = "With Driver", selected = driveType == "With Driver", modifier = Modifier.weight(1f)) { onDriveTypeChange("With Driver") }
+            OptionButton("Self-Drive", driveType == "Self-Drive", Modifier.weight(1f)) { onDriveType("Self-Drive") }
+            OptionButton("With Driver", driveType == "With Driver", Modifier.weight(1f)) { onDriveType("With Driver") }
         }
-        
         Spacer(modifier = Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OptionButton(label = "Pick-up", selected = serviceType == "Pick-up", modifier = Modifier.weight(1f)) { onServiceTypeChange("Pick-up") }
-            OptionButton(label = "Delivery", selected = serviceType == "Delivery", modifier = Modifier.weight(1f)) { onServiceTypeChange("Delivery") }
+            OptionButton("Pick-up", serviceType == "Pick-up", Modifier.weight(1f)) { onServiceType("Pick-up") }
+            OptionButton("Delivery", serviceType == "Delivery", Modifier.weight(1f)) { onServiceType("Delivery") }
         }
-
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Trip Schedule", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
-        Spacer(modifier = Modifier.height(8.dp))
-        
+        Text("Schedule & Times", fontWeight = FontWeight.Bold, color = Color.Black)
         Row(modifier = Modifier.fillMaxWidth()) {
-            var showPickupPicker by remember { mutableStateOf(false) }
-            val pickupDateState = rememberDatePickerState()
-
-            OutlinedTextField(
-                value = pickupDate, onValueChange = {},
-                readOnly = true, label = { Text("Pick-up Date") },
-                modifier = Modifier.weight(1f).padding(end = 4.dp).clickable { showPickupPicker = true },
-                enabled = false, shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(disabledTextColor = Color.Black, disabledBorderColor = Color.LightGray, disabledLabelColor = Color.Gray),
-                trailingIcon = { Icon(Icons.Filled.CalendarToday, null, tint = SportRed) }
-            )
-
-            if (showPickupPicker) {
-                DatePickerDialog(
-                    onDismissRequest = { showPickupPicker = false },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            showPickupPicker = false
-                            pickupDateState.selectedDateMillis?.let { onPickupDateChange(sdf.format(Date(it))) }
-                        }) { Text("OK", color = SportRed) }
-                    },
-                    dismissButton = { TextButton(onClick = { showPickupPicker = false }) { Text("Cancel") } }
-                ) { DatePicker(state = pickupDateState) }
+            Box(modifier = Modifier.weight(1f).padding(end = 4.dp)) {
+                OutlinedTextField(
+                    value = pickupDate, onValueChange = {}, 
+                    label = { Text("Pick-up Date", color = Color.DarkGray) }, 
+                    modifier = Modifier.fillMaxWidth(), readOnly = true,
+                    colors = textFieldColors, textStyle = textStyle
+                )
+                Box(modifier = Modifier.matchParentSize().clickable { showPickupDatePicker = true })
             }
-
-            var showReturnPicker by remember { mutableStateOf(false) }
-            val returnDateState = rememberDatePickerState()
-
-            OutlinedTextField(
-                value = returnDate, onValueChange = {},
-                readOnly = true, label = { Text("Return Date") },
-                modifier = Modifier.weight(1f).padding(start = 4.dp).clickable { showReturnPicker = true },
-                enabled = false, shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(disabledTextColor = Color.Black, disabledBorderColor = Color.LightGray, disabledLabelColor = Color.Gray),
-                trailingIcon = { Icon(Icons.Filled.CalendarToday, null, tint = SportRed) }
-            )
-
-            if (showReturnPicker) {
-                DatePickerDialog(
-                    onDismissRequest = { showReturnPicker = false },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            showReturnPicker = false
-                            returnDateState.selectedDateMillis?.let { onReturnDateChange(sdf.format(Date(it))) }
-                        }) { Text("OK", color = SportRed) }
-                    },
-                    dismissButton = { TextButton(onClick = { showReturnPicker = false }) { Text("Cancel") } }
-                ) { DatePicker(state = returnDateState) }
+            Box(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
+                OutlinedTextField(
+                    value = returnDate, onValueChange = {}, 
+                    label = { Text("Return Date", color = Color.DarkGray) }, 
+                    modifier = Modifier.fillMaxWidth(), readOnly = true,
+                    colors = textFieldColors, textStyle = textStyle
+                )
+                Box(modifier = Modifier.matchParentSize().clickable { showReturnDatePicker = true })
             }
         }
-        
         Spacer(modifier = Modifier.height(8.dp))
-        
         Row(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
-                value = pickupTime, onValueChange = onPickupTimeChange,
-                label = { Text("Pick-up Time") },
-                modifier = Modifier.weight(1f).padding(end = 4.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor = Color.Black, focusedBorderColor = SportRed, unfocusedBorderColor = Color.LightGray),
-                trailingIcon = { Icon(Icons.Filled.AccessTime, null, tint = SportRed) }
-            )
-            OutlinedTextField(
-                value = returnTime, onValueChange = onReturnTimeChange,
-                label = { Text("Return Time") },
-                modifier = Modifier.weight(1f).padding(start = 4.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor = Color.Black, focusedBorderColor = SportRed, unfocusedBorderColor = Color.LightGray),
-                trailingIcon = { Icon(Icons.Filled.AccessTime, null, tint = SportRed) }
-            )
+            Box(modifier = Modifier.weight(1f).padding(end = 4.dp)) {
+                OutlinedTextField(
+                    value = pickupTime, onValueChange = {}, 
+                    label = { Text("Pick-up Time", color = Color.DarkGray) }, 
+                    modifier = Modifier.fillMaxWidth(), readOnly = true,
+                    trailingIcon = { Icon(Icons.Filled.AccessTime, null, tint = SportRed) },
+                    colors = textFieldColors, textStyle = textStyle
+                )
+                Box(modifier = Modifier.matchParentSize().clickable { showPickupTimePicker = true })
+            }
+            Box(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
+                OutlinedTextField(
+                    value = returnTime, onValueChange = {}, 
+                    label = { Text("Return Time", color = Color.DarkGray) }, 
+                    modifier = Modifier.fillMaxWidth(), readOnly = true,
+                    trailingIcon = { Icon(Icons.Filled.AccessTime, null, tint = SportRed) },
+                    colors = textFieldColors, textStyle = textStyle
+                )
+                Box(modifier = Modifier.matchParentSize().clickable { showReturnTimePicker = true })
+            }
         }
-
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Locations", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
-        Spacer(modifier = Modifier.height(8.dp))
-        
+        Text("Locations", fontWeight = FontWeight.Bold, color = Color.Black)
         if (serviceType == "Pick-up") {
-            InfoCardItem(label = "Vehicle Fixed Location", value = car.location, icon = Icons.Filled.LocationOn)
+            InfoCardItem("Pick-up Point", car.location, Icons.Filled.LocationOn)
         } else {
             OutlinedTextField(
-                value = deliveryAddress, onValueChange = onDeliveryAddressChange,
-                label = { Text("Delivery Address") },
+                value = deliveryAddress, onValueChange = onDelivery, 
+                label = { Text("Delivery Address", color = Color.DarkGray) }, 
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor = Color.Black, focusedBorderColor = SportRed, unfocusedBorderColor = Color.LightGray)
+                colors = textFieldColors, textStyle = textStyle
             )
         }
-        
         Spacer(modifier = Modifier.height(8.dp))
-        
         OutlinedTextField(
-            value = returnAddress, onValueChange = onReturnAddressChange,
-            label = { Text("Return/Drop-off Address") },
+            value = returnAddress, onValueChange = onReturnLoc, 
+            label = { Text("Return Location", color = Color.DarkGray) }, 
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor = Color.Black, focusedBorderColor = SportRed, unfocusedBorderColor = Color.LightGray)
+            colors = textFieldColors, textStyle = textStyle
         )
-        
         Spacer(modifier = Modifier.height(32.dp))
-        Button(
-            onClick = onNext,
-            enabled = (serviceType == "Pick-up" || deliveryAddress.isNotEmpty()) && returnAddress.isNotEmpty(),
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = SportRed),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text("Next: Payment Method", fontWeight = FontWeight.Bold)
+        Button(onClick = onNext, enabled = returnAddress.isNotEmpty(), modifier = Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = SportRed), shape = RoundedCornerShape(16.dp)) {
+            Text("Next: Payment", fontWeight = FontWeight.Bold)
         }
     }
 }
-
-@Composable
-fun OptionButton(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Box(
-        modifier = modifier
-            .height(48.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) SportRed else Color(0xFFF5F5F5))
-            .clickable { onClick() }
-            .border(1.dp, if (selected) SportRed else Color.LightGray, RoundedCornerShape(12.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(label, color = if (selected) Color.White else Color.Black, fontWeight = FontWeight.Medium, fontSize = 14.sp)
-    }
-}
-
-data class PaymentMethod(val name: String)
 
 @Composable
 fun PaymentMethodStep(onPaymentConfirmed: (PaymentMethod, String) -> Unit) {
-    val methods = listOf(PaymentMethod("GCash"), PaymentMethod("Maya"), PaymentMethod("BDO"), PaymentMethod("GoTyme"), PaymentMethod("MariBank"))
+    val methods = listOf(PaymentMethod("GCash"), PaymentMethod("Maya"), PaymentMethod("BDO"))
     var showQrFor by remember { mutableStateOf<PaymentMethod?>(null) }
     var proofUploaded by remember { mutableStateOf(false) }
-
     Column {
-        Text("Select Payment Method", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
-        Text("Reservation Fee: ₱500.00 (Deductible)", style = MaterialTheme.typography.bodyMedium, color = SportRed)
+        Text("Payment Method", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Black)
+        Text("Reservation Fee: ₱500.00", color = SportRed, fontSize = 14.sp)
         Spacer(modifier = Modifier.height(24.dp))
-
         methods.forEach { method ->
-            PaymentMethodItem(method = method, isSelected = showQrFor == method, onSelect = { showQrFor = it })
+            PaymentMethodItem(method, showQrFor == method) { showQrFor = it }
             Spacer(modifier = Modifier.height(12.dp))
         }
-
-        AnimatedVisibility (visible = showQrFor != null) {
+        if (showQrFor != null) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Box(modifier = Modifier.size(200.dp).background(Color.LightGray, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                    Text("QR CODE FOR ${showQrFor?.name}", textAlign = TextAlign.Center)
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = { proofUploaded = true }, colors = ButtonDefaults.buttonColors(containerColor = Color.Black), shape = RoundedCornerShape(12.dp)) {
-                    Icon(Icons.Filled.CloudUpload, null, tint = Color.White)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Upload Payment Receipt")
-                }
+                Box(modifier = Modifier.size(160.dp).background(Color.LightGray)) { Text("QR", Modifier.align(Alignment.Center)) }
+                Button(onClick = { proofUploaded = true }, modifier = Modifier.padding(top = 16.dp)) { Text("Upload Receipt") }
             }
         }
-
         Spacer(modifier = Modifier.height(32.dp))
-        Button(
-            onClick = { showQrFor?.let { onPaymentConfirmed(it, "dummy_url") } },
-            enabled = showQrFor != null && proofUploaded,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = SportRed),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text("Confirm Payment", fontWeight = FontWeight.Bold)
+        Button(onClick = { onPaymentConfirmed(showQrFor!!, "receipt_url") }, enabled = proofUploaded, modifier = Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = SportRed)) {
+            Text("Confirm & Verify Identity")
         }
     }
 }
 
 @Composable
-fun PaymentMethodItem(method: PaymentMethod, isSelected: Boolean, onSelect: (PaymentMethod) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(64.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (isSelected) SportRed.copy(alpha = 0.1f) else Color(0xFFF5F5F5))
-            .border(1.dp, if (isSelected) SportRed else Color.Transparent, RoundedCornerShape(16.dp))
-            .clickable { onSelect(method) }
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(modifier = Modifier.size(40.dp).background(Color.White, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.Payment, contentDescription = null, tint = SportRed)
-        }
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(method.name, fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.weight(1f))
-        RadioButton(selected = isSelected, onClick = { onSelect(method) }, colors = RadioButtonDefaults.colors(selectedColor = SportRed))
-    }
-}
-
-@Composable
-fun BookingSummaryStep(
-    car: Car, user: User?,
-    pickupDate: String, returnDate: String,
-    pickupTime: String, returnTime: String,
-    driveType: String, serviceType: String,
-    deliveryAddress: String, returnAddress: String,
-    totalDays: Int, payment: PaymentMethod,
-    onComplete: () -> Unit
-) {
-    val totalPrice = car.price * totalDays
-    val reservationFee = 500.0
-    val remainingBalance = totalPrice - reservationFee
-
+fun BookingSummaryStep(car: Car, user: User?, pickupDate: String, returnDate: String, pickupTime: String, returnTime: String, driveType: String, serviceType: String, pickupLoc: String, returnLoc: String, days: Int, payment: PaymentMethod, onComplete: () -> Unit) {
+    val total = car.price * days
     Column {
-        Text("Booking Summary", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontFamily = InterFamily, color = Color.Black)
+        Text("Final Summary", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Black)
         Spacer(modifier = Modifier.height(16.dp))
-        
-        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(16.dp)) {
+        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))) {
             Column(modifier = Modifier.padding(16.dp)) {
+                SummaryRow("User", "${user?.firstName} ${user?.lastName}")
                 SummaryRow("Vehicle", car.model)
-                SummaryRow("Type", driveType)
-                SummaryRow("Service", serviceType)
-                Divider(modifier = Modifier.padding(vertical = 8.dp))
-                SummaryRow("Pick-up", "$pickupDate at $pickupTime")
-                SummaryRow("Return", "$returnDate at $returnTime")
-                SummaryRow("Pick-up Loc", deliveryAddress)
-                SummaryRow("Return Loc", returnAddress)
-                Divider(modifier = Modifier.padding(vertical = 8.dp))
-                SummaryRow("Total Price", "₱${String.format("%,.2f", totalPrice)}")
-                SummaryRow("Paid (Res)", "₱${String.format("%,.2f", reservationFee)}", Color(0xFF4CAF50))
-                SummaryRow("Balance", "₱${String.format("%,.2f", remainingBalance)}", SportRed)
+                SummaryRow("Type", "$driveType ($serviceType)")
+                SummaryRow("Schedule", "$pickupDate ($pickupTime) to $returnDate ($returnTime)")
+                SummaryRow("Pick-up", pickupLoc)
+                SummaryRow("Return", returnLoc)
+                SummaryRow("Payment", payment.name)
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                SummaryRow("Total Price", "₱${String.format(Locale.US, "%,.2f", total)}")
+                SummaryRow("Balance", "₱${String.format(Locale.US, "%,.2f", total - 500)}", SportRed)
             }
         }
-        
         Spacer(modifier = Modifier.height(24.dp))
-        
-        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = SportRed.copy(alpha = 0.05f)), shape = RoundedCornerShape(16.dp)) {
+        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = SportRed.copy(alpha = 0.05f))) {
             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Phone, null, tint = SportRed)
                 Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text("Owner: +63 912 345 6789", fontWeight = FontWeight.Bold, color = Color.Black)
-                    Text("Contact for immediate concerns", fontSize = 12.sp, color = Color.Gray)
-                }
+                Text("Owner: ${car.ownerContact}", fontWeight = FontWeight.Bold, color = Color.Black)
             }
         }
-
         Spacer(modifier = Modifier.height(32.dp))
-        Button(onClick = onComplete, modifier = Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = SportRed), shape = RoundedCornerShape(16.dp)) {
+        Button(onClick = onComplete, modifier = Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = SportRed)) {
             Text("Complete Booking", fontWeight = FontWeight.Bold)
         }
     }
 }
 
+// Helpers
 @Composable
-fun SummaryRow(label: String, value: String, valueColor: Color = Color.Black) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = Color.Gray, fontSize = 14.sp)
-        Text(value, fontWeight = FontWeight.Bold, color = valueColor, fontSize = 14.sp, textAlign = TextAlign.End, modifier = Modifier.weight(1f).padding(start = 16.dp))
+fun OptionButton(label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    Box(modifier = modifier.height(48.dp).clip(RoundedCornerShape(12.dp)).background(if (selected) SportRed else Color(0xFFF5F5F5)).clickable { onClick() }.border(1.dp, if (selected) SportRed else Color.LightGray, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+        Text(label, color = if (selected) Color.White else Color.Black, fontSize = 13.sp)
     }
 }
 
 @Composable
-fun InfoCardItem(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
+fun PaymentMethodItem(method: PaymentMethod, selected: Boolean, onSelect: (PaymentMethod) -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (selected) SportRed.copy(alpha = 0.1f) else Color(0xFFF5F5F5)).clickable { onSelect(method) }.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        RadioButton(selected, onClick = { onSelect(method) }, colors = RadioButtonDefaults.colors(selectedColor = SportRed))
+        Text(method.name, fontWeight = FontWeight.Bold, color = Color.Black)
+    }
+}
+
+@Composable
+fun SummaryRow(l: String, v: String, c: Color = Color.Black) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), Arrangement.SpaceBetween) {
+        Text(l, color = Color.Gray, fontSize = 13.sp)
+        Text(v, fontWeight = FontWeight.Bold, color = c, fontSize = 13.sp, textAlign = TextAlign.End, modifier = Modifier.weight(1f).padding(start = 16.dp))
+    }
+}
+
+@Composable
+fun InfoCardItem(l: String, v: String, i: ImageVector) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF8F8F8)).padding(16.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF8F8F8)).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, null, tint = SportRed, modifier = Modifier.size(24.dp))
+        Icon(i, null, tint = SportRed, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(label, fontSize = 12.sp, color = Color.Gray)
-            Text(value, fontWeight = FontWeight.Bold, color = Color.Black, fontSize = 14.sp)
+        Column { 
+            Text(l, fontSize = 10.sp, color = Color.Gray)
+            Text(v, fontWeight = FontWeight.Bold, color = Color.Black, fontSize = 13.sp) 
         }
     }
 }
+
+fun calculateDays(s: String, e: String): Int {
+    return try {
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val d1 = sdf.parse(s)
+        val d2 = sdf.parse(e)
+        val diff = d2!!.time - d1!!.time
+        val days = TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS).toInt()
+        if (days < 1) 1 else days
+    } catch (_: Exception) { 1 }
+}
+
+data class PaymentMethod(val name: String)

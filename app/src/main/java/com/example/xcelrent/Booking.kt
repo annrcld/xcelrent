@@ -23,5 +23,11 @@ data class Booking(
     val remainingBalance: Double = 0.0,
     val status: String = "Pending", // Pending, Confirmed, On-going, Completed, Cancelled
     val timestamp: Timestamp = Timestamp.now(),
-    val imageUrl: String = ""
+    val imageUrl: String = "",
+    // Credentials
+    val driversLicenseUrl: String = "",
+    val ltoQrUrl: String = "",
+    val proofOfBillingUrl: String = "",
+    val selfieWithIdUrl: String = "",
+    val secondValidIdUrl: String = ""
 )
