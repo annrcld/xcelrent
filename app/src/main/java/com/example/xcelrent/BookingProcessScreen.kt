@@ -38,7 +38,9 @@ import java.util.concurrent.TimeUnit
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, navController: NavController) {
-    val car = carList.find { it.id == carId } ?: return
+    val db = FirebaseFirestore.getInstance()
+    var car by remember { mutableStateOf<Car?>(null) }
+    var isLoadingCar by remember { mutableStateOf(true) }
     var currentStep by remember { mutableIntStateOf(1) }
     val context = LocalContext.current
     
@@ -72,11 +74,19 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
     var isBooking by remember { mutableStateOf(false) }
     
     val auth = FirebaseAuth.getInstance()
-    val db = FirebaseFirestore.getInstance()
 
     val totalDays = remember(pickupDate, returnDate) { calculateDays(pickupDate, returnDate) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(carId) {
+        if (carId != null) {
+            db.collection("cars").document(carId).get().addOnSuccessListener { snapshot ->
+                car = snapshot.toObject(Car::class.java)
+                isLoadingCar = false
+            }.addOnFailureListener {
+                isLoadingCar = false
+            }
+        }
+        
         auth.currentUser?.uid?.let { uid ->
             db.collection("users").document(uid).get().addOnSuccessListener {
                 user = it.toObject(User::class.java)
@@ -98,11 +108,12 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
         },
         containerColor = Color.White
     ) { padding ->
-        if (isBooking) {
+        if (isBooking || isLoadingCar) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = SportRed)
             }
         } else {
+            val currentCar = car ?: return@Scaffold
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -122,9 +133,9 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
                 Spacer(modifier = Modifier.height(32.dp))
 
                 when (currentStep) {
-                    1 -> VehicleDetailsStep(car) { currentStep = 2 }
+                    1 -> VehicleDetailsStep(currentCar) { currentStep = 2 }
                     2 -> RenterInfoStep(
-                        user, car, pickupDate, returnDate, pickupTime, returnTime, driveType, serviceType, deliveryAddress, returnAddress,
+                        user, currentCar, pickupDate, returnDate, pickupTime, returnTime, driveType, serviceType, deliveryAddress, returnAddress,
                         { pickupDate = it }, { returnDate = it }, { pickupTime = it }, { returnTime = it }, { driveType = it }, { serviceType = it }, { deliveryAddress = it }, { returnAddress = it },
                         { currentStep = 3 }
                     )
@@ -139,8 +150,8 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
                         { currentStep = 5 }
                     )
                     5 -> BookingSummaryStep(
-                        car, user, pickupDate, returnDate, pickupTime, returnTime, driveType, serviceType, 
-                        if (serviceType == "Delivery") deliveryAddress else car.location, returnAddress, 
+                        currentCar, user, pickupDate, returnDate, pickupTime, returnTime, driveType, serviceType, 
+                        if (serviceType == "Delivery") deliveryAddress else currentCar.location, returnAddress, 
                         totalDays, selectedPaymentMethod!!
                     ) {
                         isBooking = true
@@ -148,18 +159,18 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
                         if (currentUser != null) {
                             val bookingId = db.collection("bookings").document().id
                             val reservationFee = 500.0
-                            val totalPrice = car.price * totalDays
+                            val totalPrice = currentCar.price * totalDays
                             
                             val booking = Booking(
-                                id = bookingId, userId = currentUser.uid, carId = car.id, carModel = car.model,
-                                plateNumber = car.plateNumber.ifEmpty { "ABC 1234" },
-                                pickupLocation = if (serviceType == "Pick-up") car.location else deliveryAddress,
+                                id = bookingId, userId = currentUser.uid, carId = currentCar.id, carModel = currentCar.model,
+                                plateNumber = currentCar.plateNumber.ifEmpty { "ABC 1234" },
+                                pickupLocation = if (serviceType == "Pick-up") currentCar.location else deliveryAddress,
                                 deliveryLocation = returnAddress,
                                 pickupDate = pickupDate, returnDate = returnDate, pickupTime = pickupTime, returnTime = returnTime,
                                 driveType = driveType, serviceType = serviceType,
                                 paymentMethod = selectedPaymentMethod?.name ?: "", paymentProofUrl = paymentProofUrl,
                                 reservationFee = reservationFee, totalPrice = totalPrice, remainingBalance = totalPrice - reservationFee,
-                                status = "Pending", timestamp = Timestamp.now(), imageUrl = car.imageUrl,
+                                status = "Pending", timestamp = Timestamp.now(), imageUrl = currentCar.imageUrl,
                                 driversLicenseUrl = driversLicenseUrl, ltoQrUrl = ltoQrUrl,
                                 proofOfBillingUrl = proofOfBillingUrl, selfieWithIdUrl = selfieWithIdUrl, secondValidIdUrl = secondValidIdUrl
                             )

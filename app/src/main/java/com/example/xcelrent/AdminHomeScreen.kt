@@ -170,8 +170,28 @@ fun AdminSummaryStatCard(label: String, value: String, icon: ImageVector, modifi
 
 @Composable
 fun AdminInventorySection(db: FirebaseFirestore) {
+    var cars by remember { mutableStateOf<List<Car>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
     var showAddDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    fun fetchCars() {
+        isLoading = true
+        db.collection("cars")
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                cars = querySnapshot.toObjects(Car::class.java)
+                isLoading = false
+            }
+            .addOnFailureListener { e ->
+                isLoading = false
+                Toast.makeText(context, "Failed to load inventory: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    LaunchedEffect(Unit) {
+        fetchCars()
+    }
 
     if (showAddDialog) {
         AdminAddCarDialog(
@@ -180,31 +200,44 @@ fun AdminInventorySection(db: FirebaseFirestore) {
                 db.collection("cars").document(car.id).set(car)
                     .addOnSuccessListener {
                         showAddDialog = false
+                        fetchCars() // Refresh the list
                         Toast.makeText(context, "Car added to inventory", Toast.LENGTH_SHORT).show()
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
             }
         )
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            Button(
-                onClick = { showAddDialog = true },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.Add, null)
-                Spacer(Modifier.width(8.dp))
-                Text("Add New Vehicle", fontWeight = FontWeight.Bold)
-            }
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = SportRed)
         }
-        items(carList) { car ->
-            AdminCarCard(car)
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Button(
+                    onClick = { showAddDialog = true },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Add, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Add New Vehicle", fontWeight = FontWeight.Bold)
+                }
+            }
+            items(cars) { car ->
+                AdminCarCard(car) {
+                    db.collection("cars").document(car.id).delete()
+                        .addOnSuccessListener { fetchCars() }
+                }
+            }
         }
     }
 }
@@ -239,7 +272,7 @@ fun AdminUsersSection(db: FirebaseFirestore) {
 }
 
 @Composable
-fun AdminCarCard(car: Car) {
+fun AdminCarCard(car: Car, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -258,8 +291,8 @@ fun AdminCarCard(car: Car) {
                 Text("₱${String.format(Locale.US, "%,.0f", car.price)}/day", color = SportRed, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 Text(car.plateNumber, fontSize = 12.sp, color = Color.Gray)
             }
-            IconButton(onClick = { /* Edit Car */ }) {
-                Icon(Icons.Default.Edit, null, tint = Color.Gray)
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, null, tint = Color.Gray)
             }
         }
     }
@@ -473,36 +506,44 @@ fun AdminAddCarDialog(onDismiss: () -> Unit, onConfirm: (Car) -> Unit) {
     var plate by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var imageUrl by remember { mutableStateOf("") }
+    var specs by remember { mutableStateOf("") }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = RoundedCornerShape(24.dp), color = Color.White) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text("Add New Vehicle", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Black)
-                Spacer(Modifier.height(16.dp))
-                OutlinedTextField(value = model, onValueChange = { model = it }, label = { Text("Model Name") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Daily Price") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = plate, onValueChange = { plate = it }, label = { Text("Plate Number") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = imageUrl, onValueChange = { imageUrl = it }, label = { Text("Image URL") }, modifier = Modifier.fillMaxWidth())
-                
-                Spacer(Modifier.height(24.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                    Button(
-                        onClick = {
-                            val car = Car(
-                                id = System.currentTimeMillis().toString(),
-                                model = model,
-                                price = price.toDoubleOrNull() ?: 0.0,
-                                plateNumber = plate,
-                                location = location,
-                                imageUrl = imageUrl
-                            )
-                            onConfirm(car)
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = SportRed)
-                    ) { Text("Add Car") }
+            LazyColumn(modifier = Modifier.padding(24.dp)) {
+                item {
+                    Text("Add New Vehicle", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Black)
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(value = model, onValueChange = { model = it }, label = { Text("Model Name") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Daily Price") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = specs, onValueChange = { specs = it }, label = { Text("Specs (e.g. Automatic • 5 Seats)") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = plate, onValueChange = { plate = it }, label = { Text("Plate Number") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = imageUrl, onValueChange = { imageUrl = it }, label = { Text("Image URL") }, modifier = Modifier.fillMaxWidth())
+
+                    Spacer(Modifier.height(24.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                        Button(
+                            onClick = {
+                                if (model.isNotEmpty() && price.isNotEmpty()) {
+                                    val car = Car(
+                                        id = "CAR_${System.currentTimeMillis()}",
+                                        model = model,
+                                        price = price.toDoubleOrNull() ?: 0.0,
+                                        specs = specs,
+                                        plateNumber = plate,
+                                        location = location,
+                                        imageUrl = imageUrl,
+                                        status = "Live"
+                                    )
+                                    onConfirm(car)
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = SportRed)
+                        ) { Text("Add Car") }
+                    }
                 }
             }
         }

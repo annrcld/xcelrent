@@ -23,13 +23,16 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.xcelrent.ui.theme.InterFamily
 import com.example.xcelrent.ui.theme.SportRed
+import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CarDetailsScreen(carId: String?, pickup: String, returnDate: String, navController: NavController) {
-    val car = carList.find { it.id == carId } ?: return
+    val db = FirebaseFirestore.getInstance()
+    var car by remember { mutableStateOf<Car?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
 
     val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     
@@ -57,10 +60,30 @@ fun CarDetailsScreen(carId: String?, pickup: String, returnDate: String, navCont
         )
     }
 
+    LaunchedEffect(carId) {
+        if (carId != null) {
+            db.collection("cars").document(carId).get().addOnSuccessListener { snapshot ->
+                car = snapshot.toObject(Car::class.java)
+                isLoading = false
+            }.addOnFailureListener {
+                isLoading = false
+            }
+        }
+    }
+
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = SportRed)
+        }
+        return
+    }
+
+    val currentCar = car ?: return
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(car.model, fontFamily = InterFamily, fontWeight = FontWeight.Bold) },
+                title = { Text(currentCar.model, fontFamily = InterFamily, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
@@ -79,8 +102,8 @@ fun CarDetailsScreen(carId: String?, pickup: String, returnDate: String, navCont
                 .padding(24.dp)
         ) {
             AsyncImage(
-                model = car.imageUrl,
-                contentDescription = car.model,
+                model = currentCar.imageUrl,
+                contentDescription = currentCar.model,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(240.dp)
@@ -99,20 +122,20 @@ fun CarDetailsScreen(carId: String?, pickup: String, returnDate: String, navCont
             ) {
                 Column {
                     Text(
-                        text = car.model,
+                        text = currentCar.model,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         fontFamily = InterFamily
                     )
                     Text(
-                        text = car.specs,
+                        text = currentCar.specs,
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.Gray,
                         fontFamily = InterFamily
                     )
                 }
                 Text(
-                    text = "₱${car.price.toInt()}/day",
+                    text = "₱${currentCar.price.toInt()}/day",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = SportRed,
@@ -163,7 +186,7 @@ fun CarDetailsScreen(carId: String?, pickup: String, returnDate: String, navCont
                 onClick = { 
                     val pStr = sdf.format(pickupDateTime.time)
                     val rStr = sdf.format(returnDateTime.time)
-                    navController.navigate("booking_process/${car.id}?pickup=$pStr&return=$rStr") 
+                    navController.navigate("booking_process/${currentCar.id}?pickup=$pStr&return=$rStr") 
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = SportRed),
@@ -183,10 +206,6 @@ fun DateTimeSelectorSmall(
     modifier: Modifier = Modifier,
     onDateTimeSelected: (Calendar) -> Unit
 ) {
-    // Reuse the same logic as HomeScreen but maybe more compact if needed
-    // For now, let's just make it clickable and show dialogs. 
-    // I will use DateTimeSelector from HomeScreen logic but simplified.
-    
     var showDatePicker by remember { mutableStateOf(false) }
     val tempDatePickerState = rememberDatePickerState(initialSelectedDateMillis = dateTime.timeInMillis)
     val dateFormatter = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())

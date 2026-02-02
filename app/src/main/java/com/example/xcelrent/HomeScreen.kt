@@ -30,6 +30,7 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.example.xcelrent.ui.theme.InterFamily
 import com.example.xcelrent.ui.theme.SportRed
+import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -48,7 +49,11 @@ val carList = listOf(
 
 @Composable
 fun HomeScreen(navController: NavController) {
+    val db = FirebaseFirestore.getInstance()
+    var allCars by remember { mutableStateOf<List<Car>>(emptyList()) }
     var searchResults by remember { mutableStateOf<List<Car>?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+
     var pickupDateTime by remember { mutableStateOf(Calendar.getInstance()) }
     var returnDateTime by remember { mutableStateOf(Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 3) }) }
     
@@ -56,21 +61,38 @@ fun HomeScreen(navController: NavController) {
     val pickupStr = sdf.format(pickupDateTime.time)
     val returnStr = sdf.format(returnDateTime.time)
 
+    LaunchedEffect(Unit) {
+        db.collection("cars").get().addOnSuccessListener { snapshot ->
+            allCars = snapshot.toObjects(Car::class.java)
+            isLoading = false
+        }.addOnFailureListener {
+            isLoading = false
+        }
+    }
+
     Scaffold(
         topBar = { HomeTopBar() },
         bottomBar = { BottomNavigationBar(navController) },
         containerColor = Color.White
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize().verticalScroll(rememberScrollState()).background(Color.White)) {
-            SearchCarCard(pickupDateTime, returnDateTime, { pickupDateTime = it }, { returnDateTime = it }, { searchResults = carList.shuffled() })
+            SearchCarCard(pickupDateTime, returnDateTime, { pickupDateTime = it }, { returnDateTime = it }, { searchResults = allCars.filter { it.status == "Live" }.shuffled() })
             Spacer(modifier = Modifier.height(32.dp))
             WhyChooseUsSection()
             Spacer(modifier = Modifier.height(32.dp))
             PromoBanner()
             Spacer(modifier = Modifier.height(32.dp))
-            AnimatedContent(targetState = searchResults, label = "") { results ->
-                CarListSection(navController, results ?: carList, if (results != null) "Available Cars" else "Top Rated", pickupStr, returnStr)
+            
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = SportRed)
+                }
+            } else {
+                AnimatedContent(targetState = searchResults, label = "") { results ->
+                    CarListSection(navController, results ?: allCars, if (results != null) "Available Cars" else "Top Rated", pickupStr, returnStr)
+                }
             }
+
             Spacer(modifier = Modifier.height(32.dp))
             FaqSection()
             Spacer(modifier = Modifier.height(100.dp))
@@ -271,7 +293,7 @@ fun CarListItem(car: Car, onClick: () -> Unit) {
                 Text(car.model, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Black)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.AirlineSeatReclineNormal, null, modifier = Modifier.size(14.dp), tint = Color.Gray); Spacer(modifier = Modifier.width(4.dp))
-                    Text("4 Seaters", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Text(car.specs.ifEmpty { "4 Seaters" }, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                 }
                 Text("See Details", style = MaterialTheme.typography.labelMedium, color = SportRed, fontWeight = FontWeight.Bold)
             }
