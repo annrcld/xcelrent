@@ -1,6 +1,7 @@
 package com.example.xcelrent
 
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -506,7 +508,13 @@ fun RenterInfoStep(
 
 @Composable
 fun PaymentMethodStep(onPaymentConfirmed: (PaymentMethod, String) -> Unit) {
-    val methods = listOf(PaymentMethod("GCash"), PaymentMethod("Maya"), PaymentMethod("BDO"))
+    val methods = listOf(
+        PaymentMethod("GCash", R.drawable.gcash_qr),
+        PaymentMethod("Maya", R.drawable.maya_qr),
+        PaymentMethod("BDO", R.drawable.bdo_qr),
+        PaymentMethod("MariBank", R.drawable.maribank_qr),
+        PaymentMethod("GoTyme", R.drawable.gotyme_qr)
+    )
     var showQrFor by remember { mutableStateOf<PaymentMethod?>(null) }
     var proofUploaded by remember { mutableStateOf(false) }
     Column {
@@ -519,8 +527,18 @@ fun PaymentMethodStep(onPaymentConfirmed: (PaymentMethod, String) -> Unit) {
         }
         if (showQrFor != null) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Box(modifier = Modifier.size(160.dp).background(Color.LightGray)) { Text("QR", Modifier.align(Alignment.Center)) }
-                Button(onClick = { proofUploaded = true }, modifier = Modifier.padding(top = 16.dp)) { Text("Upload Receipt") }
+                Text("Scan to Pay", fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+                Image(
+                    painter = painterResource(id = showQrFor!!.qrResourceId),
+                    contentDescription = "${showQrFor!!.name} QR Code",
+                    modifier = Modifier
+                        .size(240.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .border(1.dp, Color.LightGray, RoundedCornerShape(16.dp))
+                )
+                Button(onClick = { proofUploaded = true }, modifier = Modifier.padding(top = 16.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Black)) { 
+                    Text("Upload Payment Receipt") 
+                }
             }
         }
         Spacer(modifier = Modifier.height(32.dp))
@@ -649,4 +667,4 @@ fun calculateDays(s: String, e: String): Int {
     } catch (_: Exception) { 1 }
 }
 
-data class PaymentMethod(val name: String)
+data class PaymentMethod(val name: String, val qrResourceId: Int)
