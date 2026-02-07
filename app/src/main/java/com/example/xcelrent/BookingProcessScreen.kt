@@ -576,12 +576,18 @@ fun BookingMinimalTimePickerDialog(onDismiss: () -> Unit, onConfirm: () -> Unit,
                 Text("Select Time", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 20.dp), color = Color.Black)
                 TimePicker(state = state, colors = TimePickerDefaults.colors(
                     selectorColor = SportRed, 
-                    timeSelectorSelectedContainerColor = SportRed.copy(alpha = 0.1f),
-                    timeSelectorSelectedContentColor = SportRed,
+                    timeSelectorSelectedContainerColor = SportRed,
+                    timeSelectorSelectedContentColor = Color.White,
+                    timeSelectorUnselectedContainerColor = Color(0xFFF5F5F5),
+                    timeSelectorUnselectedContentColor = Color.Black,
                     clockDialColor = Color(0xFFF5F5F5),
                     clockDialSelectedContentColor = Color.White,
+                    clockDialUnselectedContentColor = Color.Black,
                     periodSelectorSelectedContainerColor = SportRed,
-                    periodSelectorSelectedContentColor = Color.White
+                    periodSelectorSelectedContentColor = Color.White,
+                    periodSelectorUnselectedContainerColor = Color.White,
+                    periodSelectorUnselectedContentColor = Color.Black,
+                    periodSelectorBorderColor = Color.LightGray
                 ))
                 Spacer(Modifier.height(24.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
