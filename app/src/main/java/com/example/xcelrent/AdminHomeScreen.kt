@@ -173,6 +173,7 @@ fun AdminInventorySection(db: FirebaseFirestore) {
     var cars by remember { mutableStateOf<List<Car>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var showAddDialog by remember { mutableStateOf(false) }
+    var carToEdit by remember { mutableStateOf<Car?>(null) }
     val context = LocalContext.current
 
     fun fetchCars() {
@@ -194,7 +195,7 @@ fun AdminInventorySection(db: FirebaseFirestore) {
     }
 
     if (showAddDialog) {
-        AdminAddCarDialog(
+        AdminCarDialog(
             onDismiss = { showAddDialog = false },
             onConfirm = { car ->
                 db.collection("cars").document(car.id).set(car)
@@ -205,6 +206,24 @@ fun AdminInventorySection(db: FirebaseFirestore) {
                     }
                     .addOnFailureListener { e ->
                         Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+            }
+        )
+    }
+
+    if (carToEdit != null) {
+        AdminCarDialog(
+            car = carToEdit,
+            onDismiss = { carToEdit = null },
+            onConfirm = { updatedCar ->
+                db.collection("cars").document(updatedCar.id).set(updatedCar)
+                    .addOnSuccessListener {
+                        carToEdit = null
+                        fetchCars() // Refresh the list
+                        Toast.makeText(context, "Car updated successfully", Toast.LENGTH_SHORT).show()
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(context, "Error updating car: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
             }
         )
@@ -233,10 +252,14 @@ fun AdminInventorySection(db: FirebaseFirestore) {
                 }
             }
             items(cars) { car ->
-                AdminCarCard(car) {
-                    db.collection("cars").document(car.id).delete()
-                        .addOnSuccessListener { fetchCars() }
-                }
+                AdminCarCard(
+                    car = car,
+                    onEdit = { carToEdit = car },
+                    onDelete = {
+                        db.collection("cars").document(car.id).delete()
+                            .addOnSuccessListener { fetchCars() }
+                    }
+                )
             }
         }
     }
@@ -272,7 +295,7 @@ fun AdminUsersSection(db: FirebaseFirestore) {
 }
 
 @Composable
-fun AdminCarCard(car: Car, onDelete: () -> Unit) {
+fun AdminCarCard(car: Car, onEdit: () -> Unit, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -291,8 +314,13 @@ fun AdminCarCard(car: Car, onDelete: () -> Unit) {
                 Text("₱${String.format(Locale.US, "%,.0f", car.price)}/day", color = SportRed, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 Text(car.plateNumber, fontSize = 12.sp, color = Color.Gray)
             }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, null, tint = Color.Gray)
+            Row {
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, null, tint = Color.Gray)
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, null, tint = Color.Gray)
+                }
             }
         }
     }
@@ -501,17 +529,22 @@ fun AdminBookingDetailRow(label: String, value: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminAddCarDialog(onDismiss: () -> Unit, onConfirm: (Car) -> Unit) {
-    var model by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
-    var plate by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
-    var imageUrl by remember { mutableStateOf("") }
+fun AdminCarDialog(car: Car? = null, onDismiss: () -> Unit, onConfirm: (Car) -> Unit) {
+    var model by remember { mutableStateOf(car?.model ?: "") }
+    var price by remember { mutableStateOf(car?.price?.toString() ?: "") }
+    var plate by remember { mutableStateOf(car?.plateNumber ?: "") }
+    var location by remember { mutableStateOf(car?.location ?: "") }
+    var imageUrl by remember { mutableStateOf(car?.imageUrl ?: "") }
     
     // Dropdown States
-    var vehicleType by remember { mutableStateOf("Sedan") }
-    var seaters by remember { mutableStateOf("5") }
-    var transmission by remember { mutableStateOf("Automatic") }
+    // Parse specs if editing: e.g. "Automatic • 5 Seats • Sedan"
+    val initialTransmission = car?.specs?.split(" • ")?.getOrNull(0) ?: "Automatic"
+    val initialSeaters = car?.specs?.split(" • ")?.getOrNull(1)?.removeSuffix(" Seats") ?: "5"
+    val initialType = car?.specs?.split(" • ")?.getOrNull(2) ?: "Sedan"
+
+    var vehicleType by remember { mutableStateOf(initialType) }
+    var seaters by remember { mutableStateOf(initialSeaters) }
+    var transmission by remember { mutableStateOf(initialTransmission) }
 
     val vehicleTypes = listOf("Sedan", "SUV", "Van")
     val transmissionTypes = listOf("Manual", "Automatic")
@@ -550,7 +583,7 @@ fun AdminAddCarDialog(onDismiss: () -> Unit, onConfirm: (Car) -> Unit) {
         Surface(shape = RoundedCornerShape(24.dp), color = Color.White) {
             LazyColumn(modifier = Modifier.padding(24.dp)) {
                 item {
-                    Text("Add New Vehicle", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Black)
+                    Text(if (car == null) "Add New Vehicle" else "Edit Vehicle", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Black)
                     Spacer(Modifier.height(16.dp))
                     
                     OutlinedTextField(value = model, onValueChange = { model = it }, label = { Text("Model Name") }, modifier = Modifier.fillMaxWidth(), colors = textFieldColors)
@@ -579,17 +612,17 @@ fun AdminAddCarDialog(onDismiss: () -> Unit, onConfirm: (Car) -> Unit) {
                             onClick = {
                                 if (isFormValid) {
                                     val finalSpecs = "$transmission • $seaters Seats • $vehicleType"
-                                    val car = Car(
-                                        id = "CAR_${System.currentTimeMillis()}",
+                                    val finalCar = Car(
+                                        id = car?.id ?: "CAR_${System.currentTimeMillis()}",
                                         model = model,
                                         price = price.toDoubleOrNull() ?: 0.0,
                                         specs = finalSpecs,
                                         plateNumber = plate,
                                         location = location,
                                         imageUrl = imageUrl,
-                                        status = "Live"
+                                        status = car?.status ?: "Live"
                                     )
-                                    onConfirm(car)
+                                    onConfirm(finalCar)
                                 }
                             },
                             enabled = isFormValid,
@@ -598,7 +631,7 @@ fun AdminAddCarDialog(onDismiss: () -> Unit, onConfirm: (Car) -> Unit) {
                                 containerColor = SportRed,
                                 disabledContainerColor = Color.LightGray
                             )
-                        ) { Text("Add Car", color = Color.White) }
+                        ) { Text(if (car == null) "Add Car" else "Update Car", color = Color.White) }
                     }
                 }
             }
