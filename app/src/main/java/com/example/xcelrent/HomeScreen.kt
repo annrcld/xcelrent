@@ -21,6 +21,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -115,15 +116,23 @@ fun BottomNavigationBar(navController: NavController) {
 @Composable
 fun HomeTopBar() {
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text("Your Location", style = MaterialTheme.typography.bodySmall, color = Color.Gray, fontFamily = InterFamily)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.LocationOn, null, tint = SportRed, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Manila, Philippines", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontFamily = InterFamily, maxLines = 1, color = Color.Black)
-                Icon(Icons.Filled.KeyboardArrowDown, null, tint = Color.Gray)
-            }
+        // UI Branding: Replaced CurrentLocation with iv_logo (Xcelrent Logo)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "Xcelrent",
+                style = MaterialTheme.typography.titleLarge,
+                fontFamily = InterFamily,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            Text(
+                text = ".",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = SportRed
+            )
         }
+        
         BadgedBox(badge = { Badge(containerColor = SportRed) { Text("3", color = Color.White) } }) {
             Icon(Icons.Filled.Notifications, "Notifications", tint = Color.Black, modifier = Modifier.size(28.dp))
         }

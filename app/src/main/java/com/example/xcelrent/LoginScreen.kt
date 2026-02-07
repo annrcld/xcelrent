@@ -1,10 +1,15 @@
 package com.example.xcelrent
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,7 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.xcelrent.ui.theme.InterFamily
+import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -27,6 +34,14 @@ fun LoginScreen(navController: NavController) {
     val auth = FirebaseAuth.getInstance()
     val context = LocalContext.current
     val sportRed = Color(0xFFE53935)
+
+    // Improved network check
+    fun isNetworkAvailable(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return activeNetwork.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
 
     Column(
         modifier = Modifier
@@ -70,7 +85,7 @@ fun LoginScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        // 3. Input Fields (Reusing your professional AccountTextField style)
+        // 3. Input Fields
         AccountTextField(
             value = email,
             onValue = { email = it },
@@ -84,6 +99,18 @@ fun LoginScreen(navController: NavController) {
             isPassword = true
         )
 
+        // Network Warning
+        if (!isNetworkAvailable(context)) {
+            Row(
+                modifier = Modifier.padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Default.WifiOff, null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                Text("No internet connection detected", color = Color.Gray, fontSize = 12.sp)
+            }
+        }
+
         Spacer(modifier = Modifier.height(40.dp))
 
         // 4. Login Button
@@ -93,7 +120,7 @@ fun LoginScreen(navController: NavController) {
                     navController.navigate("admin_home") {
                         popUpTo("login") { inclusive = true }
                     }
-                } else if (email.isNotEmpty() && password.isNotEmpty()) {
+                } else if (email.isNotBlank() && password.isNotBlank()) {
                     isLoading = true
                     auth.signInWithEmailAndPassword(email.trim(), password)
                         .addOnSuccessListener {
@@ -104,8 +131,14 @@ fun LoginScreen(navController: NavController) {
                         }
                         .addOnFailureListener { e ->
                             isLoading = false
-                            Toast.makeText(context, "Login Failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                            if (e is FirebaseNetworkException) {
+                                Toast.makeText(context, "Network Error: Please check your internet connection.", Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(context, "Login Failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                            }
                         }
+                } else {
+                    Toast.makeText(context, "Please enter email and password.", Toast.LENGTH_SHORT).show()
                 }
             },
             modifier = Modifier.fillMaxWidth().height(64.dp),
