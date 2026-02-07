@@ -107,9 +107,9 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
             )
         },
         containerColor = Color.White
-    ) { padding ->
+    ) { paddingValues ->
         if (isBooking || isLoadingCar) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = SportRed)
             }
         } else {
@@ -117,7 +117,7 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
+                    .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
                     .padding(24.dp)
             ) {
@@ -149,42 +149,46 @@ fun BookingProcessScreen(carId: String?, pickup: String, returnDateArg: String, 
                         { driversLicenseUrl = it }, { ltoQrUrl = it }, { proofOfBillingUrl = it }, { selfieWithIdUrl = it }, { secondValidIdUrl = it },
                         { currentStep = 5 }
                     )
-                    5 -> BookingSummaryStep(
-                        currentCar, user, pickupDate, returnDate, pickupTime, returnTime, driveType, serviceType, 
-                        if (serviceType == "Delivery") deliveryAddress else currentCar.location, returnAddress, 
-                        totalDays, selectedPaymentMethod!!
-                    ) {
-                        isBooking = true
-                        val currentUser = auth.currentUser
-                        if (currentUser != null) {
-                            val bookingId = db.collection("bookings").document().id
-                            val reservationFee = 500.0
-                            val totalPrice = currentCar.price * totalDays
-                            
-                            val booking = Booking(
-                                id = bookingId, userId = currentUser.uid, carId = currentCar.id, carModel = currentCar.model,
-                                plateNumber = currentCar.plateNumber.ifEmpty { "ABC 1234" },
-                                pickupLocation = if (serviceType == "Pick-up") currentCar.location else deliveryAddress,
-                                deliveryLocation = returnAddress,
-                                pickupDate = pickupDate, returnDate = returnDate, pickupTime = pickupTime, returnTime = returnTime,
-                                driveType = driveType, serviceType = serviceType,
-                                paymentMethod = selectedPaymentMethod?.name ?: "", paymentProofUrl = paymentProofUrl,
-                                reservationFee = reservationFee, totalPrice = totalPrice, remainingBalance = totalPrice - reservationFee,
-                                status = "Pending", timestamp = Timestamp.now(), imageUrl = currentCar.imageUrl,
-                                driversLicenseUrl = driversLicenseUrl, ltoQrUrl = ltoQrUrl,
-                                proofOfBillingUrl = proofOfBillingUrl, selfieWithIdUrl = selfieWithIdUrl, secondValidIdUrl = secondValidIdUrl
-                            )
+                    5 -> {
+                        if (selectedPaymentMethod != null) {
+                            BookingSummaryStep(
+                                currentCar, user, pickupDate, returnDate, pickupTime, returnTime, driveType, serviceType, 
+                                if (serviceType == "Delivery") deliveryAddress else currentCar.location, returnAddress, 
+                                totalDays, selectedPaymentMethod!!
+                            ) {
+                                isBooking = true
+                                val currentUser = auth.currentUser
+                                if (currentUser != null) {
+                                    val bookingId = db.collection("bookings").document().id
+                                    val reservationFee = 500.0
+                                    val totalPrice = currentCar.price * totalDays
+                                    
+                                    val booking = Booking(
+                                        id = bookingId, userId = currentUser.uid, carId = currentCar.id, carModel = currentCar.model,
+                                        plateNumber = currentCar.plateNumber.ifEmpty { "ABC 1234" },
+                                        pickupLocation = if (serviceType == "Pick-up") currentCar.location else deliveryAddress,
+                                        deliveryLocation = returnAddress,
+                                        pickupDate = pickupDate, returnDate = returnDate, pickupTime = pickupTime, returnTime = returnTime,
+                                        driveType = driveType, serviceType = serviceType,
+                                        paymentMethod = selectedPaymentMethod?.name ?: "", paymentProofUrl = paymentProofUrl,
+                                        reservationFee = reservationFee, totalPrice = totalPrice, remainingBalance = totalPrice - reservationFee,
+                                        status = "Pending", timestamp = Timestamp.now(), imageUrl = currentCar.imageUrl,
+                                        driversLicenseUrl = driversLicenseUrl, ltoQrUrl = ltoQrUrl,
+                                        proofOfBillingUrl = proofOfBillingUrl, selfieWithIdUrl = selfieWithIdUrl, secondValidIdUrl = secondValidIdUrl
+                                    )
 
-                            db.collection("bookings").document(bookingId).set(booking)
-                                .addOnSuccessListener {
-                                    isBooking = false
-                                    Toast.makeText(context, "Booking successful!", Toast.LENGTH_LONG).show()
-                                    navController.navigate("mytrips") { popUpTo("home") { inclusive = false } }
+                                    db.collection("bookings").document(bookingId).set(booking)
+                                        .addOnSuccessListener {
+                                            isBooking = false
+                                            Toast.makeText(context, "Booking successful!", Toast.LENGTH_LONG).show()
+                                            navController.navigate("mytrips") { popUpTo("home") { inclusive = false } }
+                                        }
+                                        .addOnFailureListener {
+                                            isBooking = false
+                                            Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
+                                        }
                                 }
-                                .addOnFailureListener {
-                                    isBooking = false
-                                    Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
-                                }
+                            }
                         }
                     }
                 }
@@ -270,12 +274,24 @@ fun StepIndicator(step: Int, currentStep: Int, label: String) {
 
 @Composable
 fun VehicleDetailsStep(car: Car, onNext: () -> Unit) {
+    val codingDay = remember(car.plateNumber) {
+        val lastDigit = car.plateNumber.filter { it.isDigit() }.lastOrNull()?.toString()?.toIntOrNull()
+        when (lastDigit) {
+            1, 2 -> "Monday"
+            3, 4 -> "Tuesday"
+            5, 6 -> "Wednesday"
+            7, 8 -> "Thursday"
+            9, 0 -> "Friday"
+            else -> "Not Specified"
+        }
+    }
+
     Column {
         Text("Vehicle Overview", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Black)
         Spacer(modifier = Modifier.height(16.dp))
         InfoCardItem("Plate Number", car.plateNumber.ifEmpty { "ABC 1234" }, Icons.Filled.CreditCard)
         InfoCardItem("Location", car.location, Icons.Filled.LocationOn)
-        InfoCardItem("Coding Day", "Varies by Plate", Icons.Filled.EventBusy)
+        InfoCardItem("Coding Day", codingDay, Icons.Filled.EventBusy)
         Spacer(modifier = Modifier.height(32.dp))
         Button(onClick = onNext, modifier = Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = SportRed), shape = RoundedCornerShape(16.dp)) {
             Text("Next: Renter Information", fontWeight = FontWeight.Bold)
@@ -363,6 +379,37 @@ fun RenterInfoStep(
                 TextButton(onClick = { showReturnDatePicker = false }) { Text("Cancel", color = Color.Gray) }
             }
         ) { DatePicker(state = returnDatePickerState) }
+    }
+
+    // Time Pickers
+    if (showPickupTimePicker) {
+        BookingMinimalTimePickerDialog(
+            onDismiss = { showPickupTimePicker = false },
+            onConfirm = {
+                val cal = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, pickupTimePickerState.hour)
+                    set(Calendar.MINUTE, pickupTimePickerState.minute)
+                }
+                onPickupTime(timeSdf.format(cal.time))
+                showPickupTimePicker = false
+            },
+            state = pickupTimePickerState
+        )
+    }
+
+    if (showReturnTimePicker) {
+        BookingMinimalTimePickerDialog(
+            onDismiss = { showReturnTimePicker = false },
+            onConfirm = {
+                val cal = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, returnTimePickerState.hour)
+                    set(Calendar.MINUTE, returnTimePickerState.minute)
+                }
+                onReturnTime(timeSdf.format(cal.time))
+                showReturnTimePicker = false
+            },
+            state = returnTimePickerState
+        )
     }
 
 
@@ -477,7 +524,9 @@ fun PaymentMethodStep(onPaymentConfirmed: (PaymentMethod, String) -> Unit) {
             }
         }
         Spacer(modifier = Modifier.height(32.dp))
-        Button(onClick = { onPaymentConfirmed(showQrFor!!, "receipt_url") }, enabled = proofUploaded, modifier = Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = SportRed)) {
+        Button(onClick = { 
+            showQrFor?.let { onPaymentConfirmed(it, "receipt_url") }
+        }, enabled = proofUploaded, modifier = Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = SportRed)) {
             Text("Confirm & Verify Identity")
         }
     }
@@ -490,7 +539,7 @@ fun BookingSummaryStep(car: Car, user: User?, pickupDate: String, returnDate: St
         Text("Final Summary", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Black)
         Spacer(modifier = Modifier.height(16.dp))
         Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) { 
                 SummaryRow("User", "${user?.firstName} ${user?.lastName}")
                 SummaryRow("Vehicle", car.model)
                 SummaryRow("Type", "$driveType ($serviceType)")
@@ -514,6 +563,32 @@ fun BookingSummaryStep(car: Car, user: User?, pickupDate: String, returnDate: St
         Spacer(modifier = Modifier.height(32.dp))
         Button(onClick = onComplete, modifier = Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = SportRed)) {
             Text("Complete Booking", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BookingMinimalTimePickerDialog(onDismiss: () -> Unit, onConfirm: () -> Unit, state: TimePickerState) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(28.dp), color = Color.White) {
+            Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Select Time", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 20.dp), color = Color.Black)
+                TimePicker(state = state, colors = TimePickerDefaults.colors(
+                    selectorColor = SportRed, 
+                    timeSelectorSelectedContainerColor = SportRed.copy(alpha = 0.1f),
+                    timeSelectorSelectedContentColor = SportRed,
+                    clockDialColor = Color(0xFFF5F5F5),
+                    clockDialSelectedContentColor = Color.White,
+                    periodSelectorSelectedContainerColor = SportRed,
+                    periodSelectorSelectedContentColor = Color.White
+                ))
+                Spacer(Modifier.height(24.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) { Text("Cancel", color = Color.Gray) }
+                    TextButton(onClick = onConfirm) { Text("OK", fontWeight = FontWeight.Bold, color = SportRed) }
+                }
+            }
         }
     }
 }
