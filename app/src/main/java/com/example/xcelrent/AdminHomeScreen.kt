@@ -2,7 +2,6 @@ package com.example.xcelrent
 
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -537,6 +536,16 @@ fun AdminAddCarDialog(onDismiss: () -> Unit, onConfirm: (Car) -> Unit) {
                       location.isNotBlank() && 
                       imageUrl.isNotBlank()
 
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.Black,
+        unfocusedTextColor = Color.Black,
+        focusedLabelColor = Color.Black,
+        unfocusedLabelColor = Color.Gray,
+        cursorColor = Color.Black,
+        focusedBorderColor = SportRed,
+        unfocusedBorderColor = Color.LightGray
+    )
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = RoundedCornerShape(24.dp), color = Color.White) {
             LazyColumn(modifier = Modifier.padding(24.dp)) {
@@ -544,28 +553,28 @@ fun AdminAddCarDialog(onDismiss: () -> Unit, onConfirm: (Car) -> Unit) {
                     Text("Add New Vehicle", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Black)
                     Spacer(Modifier.height(16.dp))
                     
-                    OutlinedTextField(value = model, onValueChange = { model = it }, label = { Text("Model Name") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Daily Price") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = plate, onValueChange = { plate = it }, label = { Text("Plate Number") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = imageUrl, onValueChange = { imageUrl = it }, label = { Text("Image URL") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = model, onValueChange = { model = it }, label = { Text("Model Name") }, modifier = Modifier.fillMaxWidth(), colors = textFieldColors)
+                    OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Daily Price") }, modifier = Modifier.fillMaxWidth(), colors = textFieldColors)
+                    OutlinedTextField(value = plate, onValueChange = { plate = it }, label = { Text("Plate Number") }, modifier = Modifier.fillMaxWidth(), colors = textFieldColors)
+                    OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location") }, modifier = Modifier.fillMaxWidth(), colors = textFieldColors)
+                    OutlinedTextField(value = imageUrl, onValueChange = { imageUrl = it }, label = { Text("Image URL") }, modifier = Modifier.fillMaxWidth(), colors = textFieldColors)
 
                     Spacer(Modifier.height(16.dp))
-                    Text("Vehicle Configuration", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Vehicle Configuration", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.Black)
                     Spacer(Modifier.height(8.dp))
 
                     // Vehicle Type Dropdown
-                    AdminDropdownField("Vehicle Type", vehicleType, vehicleTypes) { vehicleType = it }
+                    AdminDropdownField("Vehicle Type", vehicleType, vehicleTypes, textFieldColors) { vehicleType = it }
                     
                     // Seater Dropdown (Dependent)
-                    AdminDropdownField("Seaters", seaters, seaterOptions) { seaters = it }
+                    AdminDropdownField("Seaters", seaters, seaterOptions, textFieldColors) { seaters = it }
                     
                     // Transmission Dropdown
-                    AdminDropdownField("Transmission", transmission, transmissionTypes) { transmission = it }
+                    AdminDropdownField("Transmission", transmission, transmissionTypes, textFieldColors) { transmission = it }
 
                     Spacer(Modifier.height(24.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                        TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel", color = Color.Gray) }
                         Button(
                             onClick = {
                                 if (isFormValid) {
@@ -589,7 +598,7 @@ fun AdminAddCarDialog(onDismiss: () -> Unit, onConfirm: (Car) -> Unit) {
                                 containerColor = SportRed,
                                 disabledContainerColor = Color.LightGray
                             )
-                        ) { Text("Add Car") }
+                        ) { Text("Add Car", color = Color.White) }
                     }
                 }
             }
@@ -599,7 +608,7 @@ fun AdminAddCarDialog(onDismiss: () -> Unit, onConfirm: (Car) -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminDropdownField(label: String, selected: String, options: List<String>, onSelected: (String) -> Unit) {
+fun AdminDropdownField(label: String, selected: String, options: List<String>, colors: TextFieldColors, onSelected: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
@@ -613,16 +622,17 @@ fun AdminDropdownField(label: String, selected: String, options: List<String>, o
             readOnly = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            colors = colors,
             modifier = Modifier.menuAnchor().fillMaxWidth()
         )
         ExposedDropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Color.White)
         ) {
             options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option) },
+                    text = { Text(option, color = Color.Black) },
                     onClick = {
                         onSelected(option)
                         expanded = false
