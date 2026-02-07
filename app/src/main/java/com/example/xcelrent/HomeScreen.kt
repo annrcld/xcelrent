@@ -40,13 +40,6 @@ sealed class BottomBarScreen(val route: String, val title: String, val icon: Ima
     object Profile : BottomBarScreen("profile", "Profile", Icons.Filled.Person)
 }
 
-val carList = listOf(
-    Car("car_001", "Toyota Camry", 2500.0, "4-door, A/C", "https://images.hgmsites.net/med/2023-toyota-camry-se-auto-natl-angular-front-exterior-view_100857360_m.jpg", "Live", "NDS 1234", "Quezon City, 1100 Metro Manila", "+63 917 123 4567"),
-    Car("car_002", "Honda CR-V", 3500.0, "5-door, SUV", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTFb_P9pn8AGyKRVw66bk28SMPjQ3EHIzGePQ&s", "Live", "GHT 5678", "Makati City, 1200 Metro Manila", "+63 918 234 5678"),
-    Car("car_003", "BMW 3 Series", 5500.0, "Luxury, Sport", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoE5_w-VuOKWtlS9i1xM_NUPbZV__Usy8rLg&s", "Live", "BMR 999", "BGC, Taguig, 1634 Metro Manila", "+63 919 345 6789"),
-    Car("car_004", "Ford Mustang", 8000.0, "2-door, Coupe", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhCfUi1d8kENke9r9oRkrIvTD_0jObZkYBcA&s", "Live", "FRD 001", "Ortigas, Pasig City, 1600", "+63 920 456 7890")
-)
-
 @Composable
 fun HomeScreen(navController: NavController) {
     val db = FirebaseFirestore.getInstance()
@@ -285,6 +278,18 @@ fun CarListSection(navController: NavController, cars: List<Car>, title: String,
 
 @Composable
 fun CarListItem(car: Car, onClick: () -> Unit) {
+    val codingDay = remember(car.plateNumber) {
+        val lastDigit = car.plateNumber.filter { it.isDigit() }.lastOrNull()?.toString()?.toIntOrNull()
+        when (lastDigit) {
+            1, 2 -> "Monday"
+            3, 4 -> "Tuesday"
+            5, 6 -> "Wednesday"
+            7, 8 -> "Thursday"
+            9, 0 -> "Friday"
+            else -> "Not Specified"
+        }
+    }
+
     Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(model = car.imageUrl, contentDescription = car.model, contentScale = ContentScale.Fit, modifier = Modifier.size(90.dp).clip(RoundedCornerShape(12.dp)))
@@ -295,7 +300,20 @@ fun CarListItem(car: Car, onClick: () -> Unit) {
                     Icon(Icons.Filled.AirlineSeatReclineNormal, null, modifier = Modifier.size(14.dp), tint = Color.Gray); Spacer(modifier = Modifier.width(4.dp))
                     Text(car.specs.ifEmpty { "4 Seaters" }, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                 }
-                Text("See Details", style = MaterialTheme.typography.labelMedium, color = SportRed, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(4.dp))
+                // Coding Day Badge
+                Surface(
+                    color = Color(0xFFE0E0E0),
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        text = "Coding: $codingDay",
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.DarkGray
+                    )
+                }
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("₱${car.price.toInt()}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = SportRed)
