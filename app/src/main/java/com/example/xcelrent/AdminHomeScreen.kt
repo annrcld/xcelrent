@@ -2,6 +2,7 @@ package com.example.xcelrent
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -499,6 +500,7 @@ fun AdminBookingDetailRow(label: String, value: String) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminAddCarDialog(onDismiss: () -> Unit, onConfirm: (Car) -> Unit) {
     var model by remember { mutableStateOf("") }
@@ -506,7 +508,34 @@ fun AdminAddCarDialog(onDismiss: () -> Unit, onConfirm: (Car) -> Unit) {
     var plate by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var imageUrl by remember { mutableStateOf("") }
-    var specs by remember { mutableStateOf("") }
+    
+    // Dropdown States
+    var vehicleType by remember { mutableStateOf("Sedan") }
+    var seaters by remember { mutableStateOf("5") }
+    var transmission by remember { mutableStateOf("Automatic") }
+
+    val vehicleTypes = listOf("Sedan", "SUV", "Van")
+    val transmissionTypes = listOf("Manual", "Automatic")
+    
+    val seaterOptions = when (vehicleType) {
+        "Sedan" -> listOf("4", "5")
+        "SUV" -> listOf("7", "8")
+        "Van" -> listOf("10", "11", "12", "13", "14", "15")
+        else -> listOf("5")
+    }
+
+    // Update seaters if current selection is not in the new options
+    LaunchedEffect(vehicleType) {
+        if (seaters !in seaterOptions) {
+            seaters = seaterOptions.first()
+        }
+    }
+
+    val isFormValid = model.isNotBlank() && 
+                      price.isNotBlank() && 
+                      plate.isNotBlank() && 
+                      location.isNotBlank() && 
+                      imageUrl.isNotBlank()
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = RoundedCornerShape(24.dp), color = Color.White) {
@@ -514,24 +543,38 @@ fun AdminAddCarDialog(onDismiss: () -> Unit, onConfirm: (Car) -> Unit) {
                 item {
                     Text("Add New Vehicle", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Black)
                     Spacer(Modifier.height(16.dp))
+                    
                     OutlinedTextField(value = model, onValueChange = { model = it }, label = { Text("Model Name") }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Daily Price") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = specs, onValueChange = { specs = it }, label = { Text("Specs (e.g. Automatic • 5 Seats)") }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(value = plate, onValueChange = { plate = it }, label = { Text("Plate Number") }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location") }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(value = imageUrl, onValueChange = { imageUrl = it }, label = { Text("Image URL") }, modifier = Modifier.fillMaxWidth())
+
+                    Spacer(Modifier.height(16.dp))
+                    Text("Vehicle Configuration", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Spacer(Modifier.height(8.dp))
+
+                    // Vehicle Type Dropdown
+                    AdminDropdownField("Vehicle Type", vehicleType, vehicleTypes) { vehicleType = it }
+                    
+                    // Seater Dropdown (Dependent)
+                    AdminDropdownField("Seaters", seaters, seaterOptions) { seaters = it }
+                    
+                    // Transmission Dropdown
+                    AdminDropdownField("Transmission", transmission, transmissionTypes) { transmission = it }
 
                     Spacer(Modifier.height(24.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
                         Button(
                             onClick = {
-                                if (model.isNotEmpty() && price.isNotEmpty()) {
+                                if (isFormValid) {
+                                    val finalSpecs = "$transmission • $seaters Seats • $vehicleType"
                                     val car = Car(
                                         id = "CAR_${System.currentTimeMillis()}",
                                         model = model,
                                         price = price.toDoubleOrNull() ?: 0.0,
-                                        specs = specs,
+                                        specs = finalSpecs,
                                         plateNumber = plate,
                                         location = location,
                                         imageUrl = imageUrl,
@@ -540,11 +583,51 @@ fun AdminAddCarDialog(onDismiss: () -> Unit, onConfirm: (Car) -> Unit) {
                                     onConfirm(car)
                                 }
                             },
+                            enabled = isFormValid,
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = SportRed)
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = SportRed,
+                                disabledContainerColor = Color.LightGray
+                            )
                         ) { Text("Add Car") }
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdminDropdownField(label: String, selected: String, options: List<String>, onSelected: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+    ) {
+        OutlinedTextField(
+            value = selected,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            modifier = Modifier.menuAnchor().fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        onSelected(option)
+                        expanded = false
+                    }
+                )
             }
         }
     }
