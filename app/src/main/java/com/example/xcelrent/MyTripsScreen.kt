@@ -1,5 +1,6 @@
 package com.example.xcelrent
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -32,6 +34,7 @@ fun MyTripsScreen(navController: NavController) {
     val auth = FirebaseAuth.getInstance()
     var bookings by remember { mutableStateOf<List<Booking>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    val context = LocalContext.current
 
     LaunchedEffect(auth.currentUser) {
         val userId = auth.currentUser?.uid ?: return@LaunchedEffect
@@ -82,7 +85,23 @@ fun MyTripsScreen(navController: NavController) {
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(bookings) { booking ->
-                    BookingListItem(booking = booking)
+                    BookingListItem(
+                        booking = booking,
+                        onCancel = {
+                            // Transaction to update both booking status and car availability
+                            db.runTransaction { transaction ->
+                                val bookingRef = db.collection("bookings").document(booking.id)
+                                val carRef = db.collection("cars").document(booking.carId)
+                                
+                                transaction.update(bookingRef, "status", "Cancelled")
+                                transaction.update(carRef, "status", "Live") // Returns vehicle to "Live" (Available) status
+                            }.addOnSuccessListener {
+                                Toast.makeText(context, "Booking cancelled successfully", Toast.LENGTH_SHORT).show()
+                            }.addOnFailureListener { e ->
+                                Toast.makeText(context, "Failed to cancel: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -90,7 +109,30 @@ fun MyTripsScreen(navController: NavController) {
 }
 
 @Composable
-fun BookingListItem(booking: Booking) {
+fun BookingListItem(booking: Booking, onCancel: () -> Unit) {
+    var showCancelDialog by remember { mutableStateOf(false) }
+
+    if (showCancelDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelDialog = false },
+            title = { Text("Cancel Booking", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to cancel this booking? This action will release the vehicle for others.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onCancel()
+                    showCancelDialog = false
+                }) {
+                    Text("Confirm", color = SportRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCancelDialog = false }) {
+                    Text("No", color = Color.Gray)
+                }
+            }
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -142,7 +184,7 @@ fun BookingListItem(booking: Booking) {
                 }
             }
             
-            Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF0F0F0))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF0F0F0))
             
             // Trip Details (Dates & Times)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -159,29 +201,48 @@ fun BookingListItem(booking: Booking) {
                 TripInfoRow(icon = Icons.Filled.KeyboardReturn, label = "Return Location", value = booking.deliveryLocation)
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
-            // Balance Summary
-            Surface(
-                color = SportRed.copy(alpha = 0.05f),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
+            // Actions
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text("REMAINING BALANCE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
-                        Text("₱${String.format("%,.2f", booking.remainingBalance)}", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = SportRed)
-                    }
-                    // Quick Call/Contact button simulation
-                    IconButton(
-                        onClick = { /* Handle call */ },
-                        modifier = Modifier.size(40.dp).background(Color.White, RoundedCornerShape(10.dp))
+                // Cancellation logic: Only Pending or Confirmed bookings can be cancelled
+                if (booking.status == "Pending" || booking.status == "Confirmed") {
+                    OutlinedButton(
+                        onClick = { showCancelDialog = true },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray)
                     ) {
-                        Icon(Icons.Filled.Phone, null, tint = SportRed, modifier = Modifier.size(20.dp))
+                        Text("Cancel Booking", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Balance Summary / Contact
+                Surface(
+                    color = SportRed.copy(alpha = 0.05f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1.5f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("BALANCE", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                            Text("₱${String.format("%,.0f", booking.remainingBalance)}", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = SportRed)
+                        }
+                        IconButton(
+                            onClick = { /* Handle call */ },
+                            modifier = Modifier.size(32.dp).background(Color.White, RoundedCornerShape(8.dp))
+                        ) {
+                            Icon(Icons.Filled.Phone, null, tint = SportRed, modifier = Modifier.size(16.dp))
+                        }
                     }
                 }
             }
